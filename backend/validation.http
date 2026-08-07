@@ -1,0 +1,87 @@
+### -----------------------------------------------------
+### NGO Connect REST API Validation & E2E Tests
+### -----------------------------------------------------
+
+@baseUrl = http://localhost:3000
+
+# ---------------------------------------------------------
+# 1. Validation Testing (Class Validator)
+# ---------------------------------------------------------
+
+### [TEST] Invalid Payload: Register missing required fields
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+    "email": "invalid-email"
+    # Missing password, missing role, invalid email format
+}
+
+### [TEST] Invalid Payload: Create Case with missing urgency and description
+POST {{baseUrl}}/api/cases
+Content-Type: application/json
+
+{
+    "latitude": 12.34,
+    "longitude": 56.78
+    # Missing urgency, description
+}
+
+# ---------------------------------------------------------
+# 2. RBAC Testing (RolesGuard)
+# ---------------------------------------------------------
+
+### [TEST] Unauthorized Access: No JWT
+PATCH {{baseUrl}}/api/cases/some-case-id/status
+Content-Type: application/json
+
+{
+    "status": "IN_PROGRESS"
+}
+
+### [TEST] Unauthorized Access: Expired / Invalid JWT
+PATCH {{baseUrl}}/api/cases/some-case-id/status
+Content-Type: application/json
+Authorization: Bearer invalid.jwt.token
+
+{
+    "status": "IN_PROGRESS"
+}
+
+# ---------------------------------------------------------
+# Note for actual RBAC tests:
+# You must first login as REPORTER, NGO, DONOR, and ADMIN
+# to get valid JWTs and replace the token below.
+# ---------------------------------------------------------
+@authToken = your_jwt_token_here
+
+### [TEST] Role Restricted: Donate (Requires DONOR)
+POST {{baseUrl}}/api/donations
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "amount": 100,
+    "currency": "INR",
+    "transactionId": "txn_12345"
+}
+
+### [TEST] Role Restricted: Verify NGO (Requires ADMIN)
+PATCH {{baseUrl}}/api/ngos/some-ngo-id/verify
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+
+# ---------------------------------------------------------
+# 3. Prisma Error Handling (HttpExceptionFilter)
+# ---------------------------------------------------------
+
+### [TEST] Not Found Mapping (P2025)
+# Using an invalid ID for an operation
+PATCH {{baseUrl}}/api/cases/00000000-0000-0000-0000-000000000000/status
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "status": "IN_PROGRESS"
+}

@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  # ─── PostgreSQL + PostGIS ────────────────────────────────────────────
+  postgres:
+    image: postgis/postgis:16-3.4-alpine
+    container_name: ngoconnect-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ngoconnect
+      POSTGRES_PASSWORD: ngoconnect_secret
+      POSTGRES_DB: ngoconnect
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ngoconnect']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Redis ───────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: ngoconnect-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── NestJS App ──────────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ngoconnect-app
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      DATABASE_URL: postgresql://ngoconnect:ngoconnect_secret@postgres:5432/ngoconnect?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ngo-connect-dev-jwt-secret-2024
+      JWT_EXPIRATION: 7d
+      NODE_ENV: development
+      PORT: 3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+    driver: local
