@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NGO Connect — Project Summary</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      line-height: 1.7;
+      color: #1e293b;
+      background: #fff;
+      padding: 40px 60px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    .doc-header {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: white;
+      padding: 36px 40px;
+      border-radius: 16px;
+      margin-bottom: 36px;
+      position: relative;
+      overflow: hidden;
+    }
+    .doc-header::before {
+      content: '';
+      position: absolute;
+      top: -40px; right: -40px;
+      width: 200px; height: 200px;
+      background: radial-gradient(circle, rgba(20,184,166,0.3), transparent 70%);
+    }
+    .doc-header h1 {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 8px;
+    }
+    .doc-header h1 span { color: #14b8a6; }
+    .doc-header p { color: #94a3b8; font-size: 13px; }
+    .doc-header .badges { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .badge {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      padding: 3px 10px;
+      border-radius: 50px;
+      font-size: 11px;
+      color: #cbd5e1;
+    }
+
+    /* Headings */
+    h1 { font-size: 22px; font-weight: 800; color: #0f172a; margin: 32px 0 12px; letter-spacing: -0.02em; }
+    h2 {
+      font-size: 17px;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 28px 0 10px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    h3 { font-size: 14px; font-weight: 700; color: #1e293b; margin: 20px 0 8px; }
+    h4 { font-size: 13px; font-weight: 600; color: #334155; margin: 14px 0 6px; }
+
+    /* Paragraphs */
+    p { margin-bottom: 10px; color: #334155; }
+
+    /* Blockquote */
+    blockquote {
+      background: #f0fdf4;
+      border-left: 4px solid #10b981;
+      padding: 12px 16px;
+      border-radius: 0 8px 8px 0;
+      margin: 14px 0;
+      color: #166534;
+      font-style: italic;
+    }
+
+    /* Code */
+    code {
+      font-family: 'Fira Code', monospace;
+      font-size: 11.5px;
+      background: #f1f5f9;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #0f172a;
+      border: 1px solid #e2e8f0;
+    }
+    pre {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 16px 20px;
+      border-radius: 10px;
+      overflow-x: auto;
+      margin: 14px 0;
+      font-family: 'Fira Code', monospace;
+      font-size: 11.5px;
+      line-height: 1.6;
+    }
+    pre code {
+      background: none;
+      border: none;
+      padding: 0;
+      color: inherit;
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0;
+      font-size: 12.5px;
+    }
+    th {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 9px 14px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    th:first-child { border-radius: 8px 0 0 0; }
+    th:last-child { border-radius: 0 8px 0 0; }
+    td {
+      padding: 8px 14px;
+      border-bottom: 1px solid #e2e8f0;
+      color: #334155;
+    }
+    tr:nth-child(even) td { background: #f8fafc; }
+    tr:last-child td:first-child { border-radius: 0 0 0 8px; }
+    tr:last-child td:last-child { border-radius: 0 0 8px 0; }
+
+    /* Lists */
+    ul, ol { padding-left: 22px; margin: 8px 0 12px; }
+    li { margin-bottom: 4px; color: #334155; }
+    li strong { color: #0f172a; }
+
+    /* Status badges in text */
+    .status-ok { color: #16a34a; font-weight: 600; }
+    .status-warn { color: #d97706; font-weight: 600; }
+
+    /* Section divider */
+    hr {
+      border: none;
+      border-top: 2px solid #e2e8f0;
+      margin: 28px 0;
+    }
+
+    /* Print */
+    @media print {
+      body { padding: 20px 30px; font-size: 12px; }
+      .doc-header { break-inside: avoid; }
+      h2 { break-after: avoid; }
+      table { break-inside: avoid; }
+      pre { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="doc-header">
+    <h1>🐾 <span>NGO Connect</span> — Complete Project Summary</h1>
+    <p>India's most transparent animal rescue platform. Report animals in distress, track rescues in real-time, and donate with full transparency.</p>
+    <div class="badges">
+      <span class="badge">NestJS Backend</span>
+      <span class="badge">Vanilla JS SPA</span>
+      <span class="badge">SQLite + Prisma</span>
+      <span class="badge">Socket.IO Real-Time</span>
+      <span class="badge">Leaflet Maps</span>
+      <span class="badge">Google OAuth</span>
+      <span class="badge">GitHub: CallMeAk01/NGOConnect</span>
+    </div>
+  </div>
+
+  <h2>📌 Project Overview</h2>
+  <p>NGO Connect is a <strong>full-stack web application</strong> built to bridge the gap between people who spot distressed animals and verified NGOs who can rescue them. The platform emphasizes <strong>complete financial transparency</strong>, <strong>real-time tracking</strong>, and <strong>data-driven NGO accountability</strong>.</p>
+
+  <hr>
+
+  <h2>🗂️ Project Structure</h2>
+  <pre>D:\NGO Connect\
+├── index.html                     ← Main SPA entry point
+├── NGO_Connect_Presentation.html  ← Standalone presentation file
+├── README.md / .gitignore
+├── css/
+│   └── styles.css                 ← Full design system (3,243 lines)
+├── js/
+│   ├── app.js                     ← SPA router &amp; core logic
+│   ├── data.js                    ← Mock data + utility functions
+│   ├── liveUpdates.js             ← WebSocket client
+│   └── pages/                     ← 15 page JS files
+└── backend/
+    ├── src/                       ← NestJS source (auth, cases, ngos, medicines, donations, events)
+    ├── prisma/schema.prisma       ← Database schema
+    └── .env / .env.example</pre>
+
+  <hr>
+
+  <h2>🎨 Frontend Architecture</h2>
+
+  <h3>Type</h3>
+  <p><strong>Hash-based Single Page Application (SPA)</strong> — Pure Vanilla HTML, CSS, JavaScript. No React, Vue, or any JS framework.</p>
+
+  <h3>Routing System</h3>
+  <p>URL hash changes (e.g. <code>#/cases</code>) trigger the router in <code>app.js</code> which swaps page content into <code>&lt;main id="app"&gt;</code> with CSS fade transitions.</p>
+
+  <table>
+    <tr><th>Route</th><th>Page</th></tr>
+    <tr><td><code>#/</code></td><td>Home</td></tr>
+    <tr><td><code>#/cases</code></td><td>Cases listing</td></tr>
+    <tr><td><code>#/case/:id</code></td><td>Case detail (dynamic)</td></tr>
+    <tr><td><code>#/ngos</code></td><td>NGO directory</td></tr>
+    <tr><td><code>#/ngo/:id</code></td><td>NGO profile (dynamic)</td></tr>
+    <tr><td><code>#/medicine</code></td><td>Medicine Exchange</td></tr>
+    <tr><td><code>#/donate</code></td><td>Donate</td></tr>
+    <tr><td><code>#/impact</code></td><td>Impact dashboard</td></tr>
+    <tr><td><code>#/report</code></td><td>Report an animal</td></tr>
+    <tr><td><code>#/login</code></td><td>Login / Register</td></tr>
+    <tr><td><code>#/dashboard/reporter</code></td><td>Reporter dashboard</td></tr>
+    <tr><td><code>#/dashboard/ngo</code></td><td>NGO dashboard</td></tr>
+    <tr><td><code>#/dashboard/donor</code></td><td>Donor dashboard</td></tr>
+    <tr><td><code>#/auth/callback</code></td><td>Google OAuth callback handler</td></tr>
+  </table>
+
+  <h3>Design System (styles.css — 3,243 lines)</h3>
+  <ul>
+    <li><strong>Glassmorphism</strong> cards with <code>backdrop-filter: blur()</code></li>
+    <li><strong>Dark mode</strong> support via <code>body.dark</code> class toggle</li>
+    <li><strong>Gradient buttons</strong> and gradient text</li>
+    <li><strong>Animated hero</strong> with radial gradient background (keyframe animation)</li>
+    <li><strong>Pill-shaped nav bar</strong> (floating with blur)</li>
+    <li><strong>IntersectionObserver</strong> scroll-triggered <code>animate-in</code> animations</li>
+    <li><strong>Google Fonts: Inter</strong> (weights 400–800)</li>
+  </ul>
+
+  <h3>Third-Party Libraries (CDN)</h3>
+  <table>
+    <tr><th>Library</th><th>Version</th><th>Purpose</th></tr>
+    <tr><td><strong>Leaflet.js</strong></td><td>1.9.4</td><td>Interactive maps for pinning rescue locations (uses OpenStreetMap tiles)</td></tr>
+    <tr><td><strong>Socket.IO Client</strong></td><td>4.7.4</td><td>WebSocket connection for real-time notifications</td></tr>
+    <tr><td><strong>Lucide Icons</strong></td><td>latest</td><td>SVG icon set (moon, sun, etc.)</td></tr>
+    <tr><td><strong>Google Fonts (Inter)</strong></td><td>—</td><td>Typography</td></tr>
+  </table>
+
+  <h3>Mock Data System (data.js — 652 lines)</h3>
+  <ul>
+    <li><strong>12 animal rescue cases</strong> with full timelines, financials, NGO assignments</li>
+    <li><strong>9 verified NGOs</strong> with ratings, reviews, specializations</li>
+    <li><strong>6 available medicines</strong> + 3 medicine requests</li>
+    <li><strong>Platform stats:</strong> 14,520 rescues, 94.2% success rate, 186 NGOs, 34 cities</li>
+    <li>Utility functions: <code>formatCurrency()</code>, <code>timeAgo()</code>, <code>getUrgencyBadge()</code>, <code>getStatusBadge()</code></li>
+  </ul>
+
+  <hr>
+
+  <h2>⚙️ Backend Architecture</h2>
+
+  <h3>Framework & Runtime</h3>
+  <ul>
+    <li><strong>NestJS</strong> (Node.js) written in <strong>TypeScript</strong></li>
+    <li><strong>Node.js v24.18.0</strong></li>
+    <li>Runs on <strong>port 3000</strong> with global API prefix <code>/api</code></li>
+  </ul>
+
+  <h3>Database</h3>
+  <ul>
+    <li><strong>SQLite</strong> — single local file (<code>backend/prisma/dev.db</code>)</li>
+    <li>Managed by <strong>Prisma ORM v5.22.0</strong></li>
+    <li>No external database server needed</li>
+  </ul>
+
+  <h3>Database Schema (Prisma Models)</h3>
+  <table>
+    <tr><th>Model</th><th>Key Fields</th><th>Purpose</th></tr>
+    <tr><td><strong>User</strong></td><td>id, email, passwordHash, googleId, name, avatar, role, isVerified</td><td>All user accounts (Reporter / NGO / Donor / Admin)</td></tr>
+    <tr><td><strong>NGOProfile</strong></td><td>id, userId, orgName, verificationStatus, latitude, longitude, rating</td><td>NGO details and location</td></tr>
+    <tr><td><strong>Case</strong></td><td>id, reporterId, assignedNgoId, latitude, longitude, urgency, status, description, images</td><td>Animal rescue cases</td></tr>
+    <tr><td><strong>ActivityLog</strong></td><td>id, caseId, actorId, actionType, metadata, timestamp</td><td>Immutable audit trail of all case actions</td></tr>
+    <tr><td><strong>Medicine</strong></td><td>id, donorId, name, expiryDate, type, latitude, longitude, status</td><td>Medicine exchange listings</td></tr>
+    <tr><td><strong>Donation</strong></td><td>id, donorId, caseId, amount, currency, transactionId</td><td>Financial records</td></tr>
+  </table>
+
+  <hr>
+
+  <h2>🔌 API Endpoints</h2>
+
+  <h3>Auth Module — <code>/api/auth</code></h3>
+  <table>
+    <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+    <tr><td>POST</td><td><code>/api/auth/register</code></td><td>Create account (email/password/role)</td></tr>
+    <tr><td>POST</td><td><code>/api/auth/login</code></td><td>Login → receive JWT</td></tr>
+    <tr><td>GET</td><td><code>/api/auth/google</code></td><td>Initiate Google OAuth flow</td></tr>
+    <tr><td>GET</td><td><code>/api/auth/google/callback</code></td><td>OAuth callback — issues JWT, redirects to frontend</td></tr>
+  </table>
+
+  <h3>Cases Module — <code>/api/cases</code></h3>
+  <table>
+    <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+    <tr><td>POST</td><td><code>/api/cases</code></td><td>Report new rescue case</td></tr>
+    <tr><td>GET</td><td><code>/api/cases</code></td><td>List cases (filterable + paginated)</td></tr>
+    <tr><td>GET</td><td><code>/api/cases/:id</code></td><td>Get single case</td></tr>
+    <tr><td>PATCH</td><td><code>/api/cases/:id/status</code></td><td>Update case status</td></tr>
+    <tr><td>GET</td><td><code>/api/cases/analytics/overview</code></td><td>Platform-wide stats</td></tr>
+  </table>
+
+  <h3>NGOs Module — <code>/api/ngos</code></h3>
+  <table>
+    <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+    <tr><td>GET</td><td><code>/api/ngos</code></td><td>List all NGOs (sorted by rating)</td></tr>
+    <tr><td>GET</td><td><code>/api/ngos/:id/impact</code></td><td>Get impact metrics for an NGO</td></tr>
+    <tr><td>PATCH</td><td><code>/api/ngos/:id/verify</code></td><td>Mark NGO as verified</td></tr>
+    <tr><td>GET</td><td><code>/api/ngos/:id/credibility</code></td><td>Get credibility score breakdown</td></tr>
+  </table>
+
+  <h3>Medicines Module — <code>/api/medicines</code></h3>
+  <table>
+    <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+    <tr><td>POST</td><td><code>/api/medicines/donate</code></td><td>List a medicine as available</td></tr>
+    <tr><td>GET</td><td><code>/api/medicines/nearby</code></td><td>Find medicines near a location</td></tr>
+  </table>
+
+  <h3>Donations Module — <code>/api/donations</code></h3>
+  <table>
+    <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+    <tr><td>POST</td><td><code>/api/donations</code></td><td>Record a donation</td></tr>
+    <tr><td>GET</td><td><code>/api/cases/:id/financials</code></td><td>Get financial records for a case</td></tr>
+  </table>
+
+  <hr>
+
+  <h2>🔐 Authentication Flow</h2>
+
+  <h3>Email / Password</h3>
+  <pre>User fills form → POST /api/auth/login → bcrypt compares password
+→ JWT issued → stored in localStorage → redirect to dashboard</pre>
+
+  <h3>Google OAuth</h3>
+  <pre>Click "Continue with Google" → GET /api/auth/google
+→ Passport redirects to Google consent screen
+→ User approves → Google redirects to /api/auth/google/callback
+→ Backend issues JWT → redirects to /#/auth/callback?token=...&amp;user=...
+→ Frontend stores token → redirect to role-based dashboard</pre>
+
+  <h3>Auth Strategies (Passport.js)</h3>
+  <ul>
+    <li><strong>LocalStrategy</strong> — email + bcrypt password validation</li>
+    <li><strong>JwtStrategy</strong> — Bearer token from Authorization header</li>
+    <li><strong>GoogleStrategy</strong> — Google OAuth2 via <code>passport-google-oauth20</code></li>
+    <li>Password hashing: <strong>bcrypt</strong> with salt rounds = 12</li>
+    <li>JWT expiry: <strong>7 days</strong></li>
+  </ul>
+
+  <hr>
+
+  <h2>📡 Real-Time WebSocket System</h2>
+
+  <ul>
+    <li><strong>Technology:</strong> Socket.IO on NestJS</li>
+    <li><strong>Namespace:</strong> <code>/events</code> at <code>ws://localhost:3000/events</code></li>
+  </ul>
+
+  <table>
+    <tr><th>Event</th><th>When it fires</th></tr>
+    <tr><td><code>case:created</code></td><td>A new rescue case is reported</td></tr>
+    <tr><td><code>case:statusUpdate</code></td><td>A case status changes</td></tr>
+    <tr><td><code>case:critical</code></td><td>A CRITICAL urgency case is created</td></tr>
+    <tr><td><code>case:escalated</code></td><td>A case is auto-reassigned to another NGO</td></tr>
+  </table>
+
+  <hr>
+
+  <h2>🧠 Smart Features</h2>
+
+  <h3>1. Geospatial NGO Matching (Haversine Formula)</h3>
+  <p>When a case is created, the backend calculates the distance between the case GPS coordinates and every verified NGO using the <strong>Haversine formula</strong>. It finds all NGOs within a <strong>50km radius</strong>, sorts them by distance, and if the urgency is <strong>CRITICAL</strong>, automatically assigns the nearest NGO.</p>
+
+  <h3>2. Auto-Escalation System</h3>
+  <p>A <code>setInterval</code> runs every <strong>5 minutes</strong> in <code>main.ts</code>. It checks for cases that have been stuck too long without resolution and automatically reassigns them to the next nearest available NGO, then emits a <code>case:escalated</code> WebSocket event.</p>
+
+  <h3>3. Credibility Score Algorithm</h3>
+  <p>A composite score (0–100) for each NGO calculated from 4 weighted factors:</p>
+  <table>
+    <tr><th>Factor</th><th>Weight</th><th>How Calculated</th></tr>
+    <tr><td>Response Speed</td><td>35%</td><td>Avg minutes from case assignment to first activity log. ≤30min = 95pts</td></tr>
+    <tr><td>Success Rate</td><td>30%</td><td>Resolved cases ÷ Total assigned cases × 100</td></tr>
+    <tr><td>Transparency</td><td>20%</td><td>Cases with financial records ÷ Total cases × 100</td></tr>
+    <tr><td>Community Rating</td><td>15%</td><td>Star rating (0–5) scaled to 0–100</td></tr>
+  </table>
+  <p><strong>Grade:</strong> Excellent (≥80) / Good (≥60) / Developing (&lt;60)</p>
+
+  <hr>
+
+  <h2>📦 Key Dependencies</h2>
+  <table>
+    <tr><th>Package</th><th>Version</th><th>Purpose</th></tr>
+    <tr><td><code>@nestjs/core</code></td><td>10.x</td><td>Core NestJS framework</td></tr>
+    <tr><td><code>@nestjs/jwt</code></td><td>10.x</td><td>JWT token creation/validation</td></tr>
+    <tr><td><code>passport-google-oauth20</code></td><td>latest</td><td>Google OAuth2</td></tr>
+    <tr><td><code>@prisma/client</code></td><td>5.22</td><td>Database ORM</td></tr>
+    <tr><td><code>bcrypt</code></td><td>5.x</td><td>Password hashing</td></tr>
+    <tr><td><code>socket.io</code></td><td>4.7.4</td><td>WebSocket server</td></tr>
+    <tr><td><code>class-validator</code></td><td>0.14</td><td>DTO request validation</td></tr>
+  </table>
+
+  <hr>
+
+  <h2>🌐 Servers & Ports</h2>
+  <table>
+    <tr><th>Service</th><th>Port</th><th>Technology</th></tr>
+    <tr><td>Frontend</td><td>5500</td><td>Deno static file server</td></tr>
+    <tr><td>Backend API</td><td>3000</td><td>NestJS / Node.js</td></tr>
+    <tr><td>WebSocket</td><td>3000</td><td>Socket.IO (same port as API)</td></tr>
+  </table>
+
+  <hr>
+
+  <h2>✅ Current Project Status</h2>
+  <table>
+    <tr><th>Feature</th><th>Status</th></tr>
+    <tr><td>Frontend SPA with all pages</td><td>✅ Fully working</td></tr>
+    <tr><td>Mock data fallback (works without backend)</td><td>✅ Working</td></tr>
+    <tr><td>Backend API (NestJS)</td><td>✅ Running on port 3000</td></tr>
+    <tr><td>SQLite database</td><td>✅ Created and migrated</td></tr>
+    <tr><td>Email/password auth</td><td>✅ Working</td></tr>
+    <tr><td>JWT protected routes</td><td>✅ Working</td></tr>
+    <tr><td>WebSocket live updates</td><td>✅ Working</td></tr>
+    <tr><td>Geospatial NGO matching</td><td>✅ Working (Haversine)</td></tr>
+    <tr><td>Auto-escalation scheduler</td><td>✅ Running every 5 min</td></tr>
+    <tr><td>Credibility score system</td><td>✅ Working</td></tr>
+    <tr><td>Dark mode toggle</td><td>✅ Working</td></tr>
+    <tr><td>Responsive mobile design</td><td>✅ Working</td></tr>
+    <tr><td>Google OAuth</td><td>⚠️ Needs real credentials in .env</td></tr>
+    <tr><td>GitHub repository</td><td>✅ github.com/CallMeAk01/NGOConnect</td></tr>
+  </table>
+
+  <hr>
+
+  <h2>👥 Team</h2>
+  <table>
+    <tr><th>Name</th><th>Role</th></tr>
+    <tr><td>Akshansh Rathore</td><td>Project Lead</td></tr>
+    <tr><td>Manish Kumar</td><td>Technology Lead</td></tr>
+    <tr><td>Bhupendra Singh</td><td>Innovation &amp; Testing Lead</td></tr>
+    <tr><td>Sanskar Dubey</td><td>Marketing Lead</td></tr>
+  </table>
+
+  <hr>
+  <p style="text-align:center; color:#94a3b8; font-size:11px; margin-top:24px;">
+    🐾 NGO Connect — github.com/CallMeAk01/NGOConnect — Generated by Antigravity AI
+  </p>
+
+</body>
+</html>

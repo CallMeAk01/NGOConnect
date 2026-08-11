@@ -106,6 +106,7 @@ function handleGoogleCallback() {
     const user = JSON.parse(decodeURIComponent(userStr));
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(user));
+    if (typeof updateNavbar === 'function') updateNavbar();
     showToast('✅ Signed in with Google!');
 
     const role = (user.role || 'REPORTER').toUpperCase();
@@ -147,6 +148,7 @@ async function handleLogin() {
       showToast('✅ Login successful!');
       localStorage.setItem('token', data.access_token);
       localStorage.setItem('user', JSON.stringify(data.user));
+      if (typeof updateNavbar === 'function') updateNavbar();
 
       const role = data.user.role.toUpperCase();
       const dashMap = { REPORTER: '/dashboard/reporter', NGO: '/dashboard/ngo', DONOR: '/dashboard/donor', ADMIN: '/dashboard/reporter' };

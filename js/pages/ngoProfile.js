@@ -138,21 +138,29 @@ function renderNgoProfile(ngoId) {
             <!-- Community Reviews -->
             <div class="card animate-in" style="margin-bottom:var(--space-xl);">
               <h3 style="margin-bottom:var(--space-lg);">⭐ Community Reviews</h3>
-              <div style="text-align:center; margin-bottom:var(--space-lg);">
+              <div id="reviewsSummary" style="text-align:center; margin-bottom:var(--space-lg);">
                 <div style="font-size:2.5rem; font-weight:800; color:var(--gold-light);">${ngo.rating}</div>
                 <div style="color:var(--gold-light);">⭐⭐⭐⭐⭐</div>
-                <div style="font-size:0.85rem; color:var(--text-muted);">${ngo.reviewCount} reviews</div>
+                <div style="font-size:0.85rem; color:var(--text-muted);">Loading reviews...</div>
               </div>
-              ${ngo.reviews.map(r => `
-                <div style="border-top:1px solid var(--border-glass); padding:var(--space-md) 0;">
-                  <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-                    <span style="font-weight:600; font-size:0.9rem;">${r.user}</span>
-                    <span style="color:var(--gold-light); font-size:0.8rem;">${'⭐'.repeat(r.rating)}</span>
-                  </div>
-                  <p style="font-size:0.85rem; color:var(--text-secondary);">${r.comment}</p>
-                  <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">📅 ${formatDate(r.date)}</div>
+
+              <!-- Submit Review Form (only if logged in) -->
+              <div id="reviewForm" style="background:var(--bg-glass);border:1px solid var(--border-glass);border-radius:var(--radius-md);padding:var(--space-md);margin-bottom:var(--space-lg);">
+                <div style="font-weight:600;font-size:0.9rem;margin-bottom:var(--space-sm);">✍️ Leave a Review</div>
+                <!-- Star Rating Picker -->
+                <div id="starPicker" style="display:flex;gap:6px;margin-bottom:var(--space-sm);font-size:1.6rem;cursor:pointer;">
+                  <span data-star="1" onclick="setReviewStar(1)" style="opacity:0.3;">⭐</span>
+                  <span data-star="2" onclick="setReviewStar(2)" style="opacity:0.3;">⭐</span>
+                  <span data-star="3" onclick="setReviewStar(3)" style="opacity:0.3;">⭐</span>
+                  <span data-star="4" onclick="setReviewStar(4)" style="opacity:0.3;">⭐</span>
+                  <span data-star="5" onclick="setReviewStar(5)" style="opacity:0.3;">⭐</span>
                 </div>
-              `).join('')}
+                <textarea id="reviewComment" class="form-textarea" placeholder="Share your experience with this NGO..." style="min-height:70px;margin-bottom:var(--space-sm);"></textarea>
+                <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="submitNgoReview()">Submit Review</button>
+                <p id="reviewLoginNote" style="font-size:0.8rem;color:var(--text-muted);margin-top:6px;display:none;">Please <a href="#/login" style="color:var(--primary);">log in</a> to submit a review.</p>
+              </div>
+
+              <div id="reviewsList"><div style="color:var(--text-muted);font-size:0.85rem;">Loading reviews...</div></div>
             </div>
 
             <!-- Contact -->
@@ -172,19 +180,106 @@ function renderNgoProfile(ngoId) {
   `;
 }
 
+let _reviewNgoId = null;
+let _selectedReviewStar = 0;
+
+function setReviewStar(n) {
+  _selectedReviewStar = n;
+  document.querySelectorAll('#starPicker span').forEach((s, i) => {
+    s.style.opacity = i < n ? '1' : '0.3';
+    s.style.transform = i < n ? 'scale(1.15)' : 'scale(1)';
+  });
+}
+
+async function submitNgoReview() {
+  if (!isLoggedIn()) {
+    document.getElementById('reviewLoginNote').style.display = 'block';
+    showToast('Please log in to submit a review', 'error');
+    return;
+  }
+  if (!_selectedReviewStar) {
+    showToast('Please select a star rating', 'error');
+    return;
+  }
+  const comment = document.getElementById('reviewComment')?.value || '';
+  const btn = document.querySelector('#reviewForm button');
+  if (btn) { btn.disabled = true; btn.textContent = 'Submitting...'; }
+
+  try {
+    const res = await fetch(`http://localhost:3000/api/ngos/${_reviewNgoId}/reviews`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ rating: _selectedReviewStar, comment })
+    });
+    if (!res.ok) throw new Error((await res.json()).message || 'Failed');
+    showToast('✅ Review submitted! Thank you.');
+    loadNgoReviews(_reviewNgoId); // Refresh reviews list
+    setReviewStar(0);
+    if (document.getElementById('reviewComment')) document.getElementById('reviewComment').value = '';
+  } catch (e) {
+    showToast('Failed to submit review: ' + e.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Submit Review'; }
+  }
+}
+
+async function loadNgoReviews(ngoId) {
+  const listEl = document.getElementById('reviewsList');
+  const summaryEl = document.getElementById('reviewsSummary');
+  if (!listEl) return;
+
+  try {
+    const res = await fetch(`http://localhost:3000/api/ngos/${ngoId}/reviews`);
+    const data = await res.json();
+    const { reviews, avgRating, total } = data;
+
+    if (summaryEl) {
+      const stars = Math.round(avgRating);
+      summaryEl.innerHTML = `
+        <div style="font-size:2.5rem;font-weight:800;color:var(--gold-light);">${avgRating || 0}</div>
+        <div style="color:var(--gold-light);font-size:1.1rem;">${'⭐'.repeat(stars)}${'☆'.repeat(5 - stars)}</div>
+        <div style="font-size:0.85rem;color:var(--text-muted);">${total} review${total !== 1 ? 's' : ''}</div>`;
+    }
+
+    if (!reviews || reviews.length === 0) {
+      listEl.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;">No reviews yet. Be the first to review!</p>';
+      return;
+    }
+
+    listEl.innerHTML = reviews.map(r => `
+      <div style="border-top:1px solid var(--border-glass);padding:var(--space-md) 0;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+          <span style="font-weight:600;font-size:0.9rem;">${r.user?.name || 'Anonymous'}</span>
+          <span style="color:var(--gold-light);font-size:0.85rem;">${'⭐'.repeat(r.rating)}</span>
+        </div>
+        ${r.comment ? `<p style="font-size:0.85rem;color:var(--text-secondary);margin:4px 0;">${r.comment}</p>` : ''}
+        <div style="font-size:0.75rem;color:var(--text-muted);">📅 ${timeAgo(r.createdAt)}</div>
+      </div>
+    `).join('');
+  } catch (e) {
+    if (listEl) listEl.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;">Could not load reviews.</p>';
+  }
+}
+
 function initNgoProfilePage() {
-  // Try to fetch real credibility score from API
   const hash = window.location.hash;
   const ngoId = hash.split('/ngo/')[1];
   if (!ngoId) return;
+  _reviewNgoId = ngoId;
 
-  // Use mock-scored approach as default, try API for real data
-  const mockScore = Math.floor(Math.random() * 20) + 75; // 75-95
-  const circumference = 2 * Math.PI * 60; // r=60
+  // Show/hide review form based on login state
+  const loginNote = document.getElementById('reviewLoginNote');
+  if (!isLoggedIn() && loginNote) loginNote.style.display = 'block';
+
+  // Load live reviews
+  loadNgoReviews(ngoId);
+
+  // Credibility score
+  const circumference = 2 * Math.PI * 60;
+  const mockScore = Math.floor(Math.random() * 20) + 75;
   const offset = circumference - (mockScore / 100) * circumference;
   const ringFill = document.getElementById('credRingFill');
   const scoreValue = document.getElementById('credScoreValue');
-
   if (ringFill) {
     setTimeout(() => {
       ringFill.setAttribute('stroke-dasharray', circumference.toString());
@@ -192,7 +287,6 @@ function initNgoProfilePage() {
     }, 300);
   }
 
-  // Try fetching from backend API
   fetch(`http://localhost:3000/api/ngos/${ngoId}/credibility`)
     .then(res => res.json())
     .then(data => {
@@ -201,7 +295,6 @@ function initNgoProfilePage() {
         const grade = data.grade;
         const cls = score >= 80 ? 'excellent' : score >= 60 ? 'good' : 'developing';
         const color = score >= 80 ? 'var(--success)' : score >= 60 ? 'var(--primary)' : 'var(--warning)';
-
         const newOffset = circumference - (score / 100) * circumference;
         if (ringFill) {
           ringFill.className.baseVal = `ring-fill ${cls}`;
@@ -212,8 +305,6 @@ function initNgoProfilePage() {
           scoreValue.style.color = color;
           scoreValue.nextElementSibling.textContent = grade;
         }
-
-        // Update breakdown bars
         const breakdown = data.breakdown;
         const bd = document.getElementById('credBreakdown');
         if (bd && breakdown) {
@@ -227,6 +318,5 @@ function initNgoProfilePage() {
         }
       }
     })
-    .catch(() => { /* Use mock scores */ });
+    .catch(() => {});
 }
-

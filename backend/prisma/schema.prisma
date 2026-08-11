@@ -31,6 +31,7 @@ model User {
   activityLogs  ActivityLog[]
   medicines     Medicine[]
   donations     Donation[]
+  reviews       Review[]
 
   @@map("users")
 }
@@ -51,8 +52,9 @@ model NGOProfile {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  user          User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  assignedCases Case[] @relation("AssignedNGOCases")
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignedCases Case[]   @relation("AssignedNGOCases")
+  reviews       Review[]
 
   @@map("ngo_profiles")
 }
@@ -69,6 +71,8 @@ model Case {
   status        String      @default("OPEN") // Was Enum CaseStatus
   description   String
   images        String      @default("[]") // Was String[]
+  aiVerdict     String?     @default("PENDING") @map("ai_verdict")   // LIKELY_REAL | SUSPICIOUS | LIKELY_FAKE | PENDING
+  aiConfidence  Int?        @default(0) @map("ai_confidence")          // 0-100
   createdAt     DateTime    @default(now()) @map("created_at")
   updatedAt     DateTime    @updatedAt @map("updated_at")
 
@@ -134,4 +138,20 @@ model Donation {
   case  Case? @relation(fields: [caseId], references: [id], onDelete: SetNull)
 
   @@map("donations")
+}
+
+// ─── Review ─────────────────────────────────────────────────────────
+model Review {
+  id        String   @id @default(uuid())
+  ngoId     String   @map("ngo_id")
+  userId    String   @map("user_id")
+  rating    Int      // 1-5
+  comment   String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  ngo  NGOProfile @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  user User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([ngoId, userId])
+  @@map("reviews")
 }

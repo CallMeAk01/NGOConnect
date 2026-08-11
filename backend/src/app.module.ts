@@ -7,6 +7,7 @@ import { NgosModule } from './ngos/ngos.module';
 import { MedicinesModule } from './medicines/medicines.module';
 import { DonationsModule } from './donations/donations.module';
 import { EventsModule } from './events/events.module';
+import { AiModule } from './ai/ai.module';
 
 @Module({
     imports: [
@@ -26,6 +27,7 @@ import { EventsModule } from './events/events.module';
         MedicinesModule,
         DonationsModule,
         EventsModule,
+        AiModule,
     ],
 })
 export class AppModule { }

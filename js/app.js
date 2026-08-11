@@ -42,6 +42,50 @@ try {
     alert('Critical Error: Application failed to initialize routes. See console.');
 }
 
+// --- Auth Helpers ---
+function isLoggedIn() {
+    return !!localStorage.getItem('token');
+}
+
+function getCurrentUser() {
+    try { return JSON.parse(localStorage.getItem('user') || 'null'); } catch { return null; }
+}
+
+function getAuthHeaders() {
+    const token = localStorage.getItem('token');
+    return token ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+                 : { 'Content-Type': 'application/json' };
+}
+
+function logout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    updateNavbar();
+    navigate('/');
+    showToast('Logged out successfully', 'success');
+}
+
+function updateNavbar() {
+    const authBtn = document.getElementById('navAuthBtn');
+    if (!authBtn) return;
+    const user = getCurrentUser();
+    if (isLoggedIn() && user) {
+        const role = (user.role || 'REPORTER').toUpperCase();
+        const dashMap = { REPORTER: '/dashboard/reporter', NGO: '/dashboard/ngo', DONOR: '/dashboard/donor', ADMIN: '/dashboard/reporter' };
+        const dashPath = dashMap[role] || '/dashboard/reporter';
+        authBtn.outerHTML = `
+          <div id="navAuthBtn" style="display:flex;align-items:center;gap:8px;">
+            <a href="#${dashPath}" class="btn btn-sm btn-secondary" style="font-weight:600;">👤 ${user.name || user.email?.split('@')[0] || 'Account'}</a>
+            <button class="btn btn-sm btn-danger" onclick="logout()" style="padding:0.3rem 0.7rem;">Logout</button>
+          </div>`;
+    } else {
+        authBtn.outerHTML = `<a id="navAuthBtn" href="#/login" class="btn btn-sm btn-secondary nav-auth-btn">Login</a>`;
+    }
+}
+
+// Protected routes that require login
+const PROTECTED_ROUTES = ['/report', '/dashboard/reporter', '/dashboard/ngo', '/dashboard/donor'];
+
 // --- Router ---
 function getHash() {
     return window.location.hash.slice(1) || '/';
@@ -77,9 +121,16 @@ function router() {
                     // Google OAuth callback — parse token from URL and redirect to dashboard
                     if (typeof handleGoogleCallback === 'function') handleGoogleCallback();
                 } else if (routes[path]) {
-                    app.innerHTML = routes[path]();
-                    // Call page-specific initialization
-                    initPage(path);
+                    // Auth guard for protected routes
+                    if (PROTECTED_ROUTES.includes(path) && !isLoggedIn()) {
+                        showToast('Please login to access this page', 'error');
+                        app.innerHTML = routes['/login']();
+                        initPage('/login');
+                        window.location.hash = '#/login';
+                    } else {
+                        app.innerHTML = routes[path]();
+                        initPage(path);
+                    }
                 } else {
                     app.innerHTML = render404();
                 }
@@ -90,6 +141,8 @@ function router() {
 
                 // Update active nav link
                 updateActiveNav(path);
+                // Update navbar auth state
+                updateNavbar();
 
                 // Scroll to top
                 window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -290,6 +343,7 @@ window.addEventListener('DOMContentLoaded', () => {
         window.location.hash = '#/';
     }
     router();
+    updateNavbar(); // Set initial navbar state based on stored auth
 });
 
 

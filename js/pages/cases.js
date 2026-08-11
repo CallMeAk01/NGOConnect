@@ -67,27 +67,45 @@ function generateCasesContent(cases) {
   `;
 }
 
+function getAiBadge(verdict, confidence) {
+  if (!verdict || verdict === 'PENDING') return '';
+  const map = {
+    'LIKELY_REAL':  { color: '#16a34a', bg: 'rgba(22,163,74,0.12)', icon: '🟢', label: 'AI: Verified' },
+    'SUSPICIOUS':   { color: '#d97706', bg: 'rgba(217,119,6,0.12)',  icon: '🟡', label: 'AI: Suspicious' },
+    'LIKELY_FAKE':  { color: '#dc2626', bg: 'rgba(220,38,38,0.12)',  icon: '🔴', label: 'AI: Flagged' },
+  };
+  const s = map[verdict];
+  if (!s) return '';
+  return `<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:50px;font-size:0.65rem;font-weight:700;background:${s.bg};color:${s.color};border:1px solid ${s.color}30;">${s.icon} ${s.label} ${confidence ? `(${confidence}%)` : ''}</span>`;
+}
+
 function renderCaseCards(cases) {
+  if (!cases || cases.length === 0) {
+    return `<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-muted);">No cases found matching your filters.</div>`;
+  }
   return cases.map((c, i) => {
     const pct = c.fundsRequired > 0 ? Math.min(100, ((c.fundsRaised || 0) / c.fundsRequired) * 100) : 0;
     const needsHelp = (c.fundsRaised || 0) < (c.fundsRequired || 0) && c.status !== 'resolved' && c.status !== 'RESOLVED';
+    const displayTitle = c.title || c.description?.slice(0, 50) || 'Animal in Distress';
+    const ngoLabel = c.assignedNgo?.orgName || (c.assignedNgoId ? 'NGO Assigned' : '⏳ Awaiting NGO');
     return `
-    <div class="case-card animate-in animate-delay-${(i % 4) + 1}" data-city="${c.city}" data-urgency="${c.urgency}" data-status="${c.status}" onclick="navigate('/case/${c.id}')">
+    <div class="case-card animate-in animate-delay-${(i % 4) + 1}" data-city="${c.city || ''}" data-urgency="${c.urgency}" data-status="${c.status}" onclick="navigate('/case/${c.id}')">
       <div class="case-card-img">
         <span class="emoji">🐾</span>
         ${getUrgencyBadge(c.urgency)}
         ${needsHelp ? '<span class="badge badge-needs-help">💛 Needs Help</span>' : ''}
       </div>
       <div class="case-card-body">
-        <div class="case-card-title">${c.title}</div>
+        <div class="case-card-title">${displayTitle}</div>
         <div class="case-card-meta">
-          <span>📍 ${c.city || 'Unknown'}</span>
-          <span>🕐 ${timeAgo(c.createdAt)}</span>
+          <span>📍 ${c.city || c.location || 'Location reported'}</span>
+          <span>🕐 ${timeAgo(c.createdAt || c.reportedAt)}</span>
         </div>
         <p style="font-size:0.8rem; color:var(--text-muted); margin:var(--space-sm) 0; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${c.description}</p>
+        <div style="margin:4px 0;">${getAiBadge(c.aiVerdict, c.aiConfidence)}</div>
         <div class="case-card-status">
           ${getStatusBadge(c.status)}
-          <div class="case-card-ngo" style="font-size:0.75rem;">${c.assignedNgoId ? 'Assigned' : '⏳ Awaiting'}</div>
+          <div class="case-card-ngo" style="font-size:0.75rem;">${ngoLabel}</div>
         </div>
         ${c.fundsRequired > 0 ? `
           <div class="case-fund-progress">

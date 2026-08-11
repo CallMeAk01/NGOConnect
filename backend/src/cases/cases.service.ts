@@ -1,9 +1,10 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventsGateway } from '../events/events.gateway';
 import { CreateCaseDto } from './dto/create-case.dto';
 import { QueryCasesDto } from './dto/query-cases.dto';
 import { UpdateCaseStatusDto } from './dto/update-case-status.dto';
+import { AiService } from '../ai/ai.service';
 
 function getDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
     const R = 6371e3;
@@ -18,9 +19,12 @@ function getDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: numbe
 
 @Injectable()
 export class CasesService {
+    private readonly logger = new Logger(CasesService.name);
+
     constructor(
         private readonly prisma: PrismaService,
         private readonly eventsGateway: EventsGateway,
+        private readonly aiService: AiService,
     ) { }
 
     // ─── Create Case ───────────────────────────────────────────────────
@@ -71,6 +75,17 @@ export class CasesService {
                 }
             },
         });
+
+        // AI Analysis (async, don't block response)
+        this.aiService.analyzeReport(dto.description, dto.latitude, dto.longitude)
+            .then(async (result) => {
+                await this.prisma.case.update({
+                    where: { id: newCase.id },
+                    data: { aiVerdict: result.verdict, aiConfidence: result.confidence }
+                });
+                this.logger.log(`AI verdict for case ${newCase.id}: ${result.verdict} (${result.confidence}%)`);
+            })
+            .catch(err => this.logger.error('AI analysis failed:', err));
 
         // Log creation in ActivityLog
         if (reporterId) {
