@@ -1,74 +1,235 @@
 // ============================================================
-// NGO CONNECT — NGO Dashboard
+// NGO CONNECT — NGO Dashboard (Live Backend Data)
 // ============================================================
 
 function renderDashboardNgo() {
-    const incoming = MOCK_DATA.cases.filter(c => c.status === 'open');
-    const active = MOCK_DATA.cases.filter(c => c.status === 'in-progress');
+    const user = (() => { try { return JSON.parse(localStorage.getItem('user') || 'null'); } catch { return null; } })();
+    const orgName = user?.name || 'Your NGO';
+
     return `
     <section class="section" style="padding-top:2rem;"><div class="container">
       <div class="dashboard-layout">
         <div class="dashboard-sidebar">
           <div style="text-align:center;margin-bottom:2rem;">
             <div class="ngo-avatar" style="width:60px;height:60px;font-size:1.5rem;margin:0 auto 0.5rem;">🐾</div>
-            <h3 style="font-size:1rem;">Paws & Care Foundation</h3>
-            <span class="badge badge-verified" style="font-size:0.6rem;">✅ Verified</span>
+            <h3 style="font-size:1rem;">${orgName}</h3>
+            <span class="badge badge-verified" style="font-size:0.6rem;">✅ Verified NGO</span>
           </div>
           <nav class="sidebar-nav">
-            <a href="#/dashboard/ngo" class="active">📥 Incoming Cases <span class="notification-dot"></span></a>
-            <a href="#/dashboard/ngo">🔄 Active Cases</a>
-            <a href="#/dashboard/ngo">💰 Financials</a>
-            <a href="#/dashboard/ngo">📊 Analytics</a>
-            <a href="#/dashboard/ngo">🤝 Coordination</a>
-            <a href="#/" onclick="showToast('Logged out')">🚪 Logout</a>
+            <a href="#/dashboard/ngo" class="active">📥 Cases Dashboard</a>
+            <a href="#/impact">📊 Platform Impact</a>
+            <a href="#/ngos">🏢 NGO Directory</a>
+            <a href="#/" onclick="logout()">🚪 Logout</a>
           </nav>
         </div>
+
         <div class="dashboard-main">
           <div class="dashboard-header">
-            <div><h2>🏢 NGO Dashboard</h2><p style="color:var(--text-muted);font-size:0.9rem;">Manage cases, track finances, and view analytics</p></div>
+            <div>
+              <h2>🏢 NGO Dashboard</h2>
+              <p style="color:var(--text-muted);font-size:0.9rem;">Manage assigned cases and track your impact</p>
+            </div>
+            <div id="ngoLiveIndicator" style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:var(--text-muted);">
+              <span style="width:8px;height:8px;border-radius:50%;background:var(--warning);display:inline-block;"></span>
+              Loading...
+            </div>
           </div>
+
           <!-- Quick Stats -->
-          <div class="grid-4 animate-in" style="margin-bottom:2rem;">
-            <div class="ticker-item"><div class="ticker-value" style="font-size:1.4rem;">${incoming.length}</div><div class="ticker-label">Incoming</div></div>
-            <div class="ticker-item"><div class="ticker-value" style="font-size:1.4rem;">${active.length}</div><div class="ticker-label">Active</div></div>
-            <div class="ticker-item"><div class="ticker-value" style="font-size:1.4rem;">96%</div><div class="ticker-label">Success Rate</div></div>
-            <div class="ticker-item"><div class="ticker-value" style="font-size:1.4rem;">23 min</div><div class="ticker-label">Avg Response</div></div>
+          <div class="grid-4 animate-in" style="margin-bottom:2rem;" id="ngoDashStats">
+            <div class="ticker-item"><div class="ticker-value" style="font-size:1.4rem;" id="statOpen">—</div><div class="ticker-label">Open Cases</div></div>
+            <div class="ticker-item"><div class="ticker-value" style="font-size:1.4rem;" id="statActive">—</div><div class="ticker-label">In Progress</div></div>
+            <div class="ticker-item"><div class="ticker-value" style="font-size:1.4rem;" id="statResolved">—</div><div class="ticker-label">Resolved</div></div>
+            <div class="ticker-item"><div class="ticker-value" style="font-size:1.4rem;" id="statTotal">—</div><div class="ticker-label">Total Cases</div></div>
           </div>
-          <!-- Incoming Cases -->
+
+          <!-- Open / Incoming Cases -->
           <div class="card animate-in" style="margin-bottom:2rem;padding:1.5rem;">
-            <h3 style="margin-bottom:1rem;">📥 Incoming Cases <span class="badge badge-critical" style="font-size:0.6rem;">${incoming.length} new</span></h3>
-            ${incoming.length > 0 ? incoming.map(c => `
-              <div style="display:flex;align-items:center;gap:1rem;padding:1rem 0;border-bottom:1px solid var(--border-glass);">
-                <div style="font-size:1.5rem;">${c.emoji}</div>
-                <div style="flex:1;">
-                  <div style="font-weight:600;">${c.title}</div>
-                  <div style="font-size:0.8rem;color:var(--text-muted);">📍 ${c.location} • 🕐 ${timeAgo(c.reportedAt)}</div>
-                </div>
-                ${getUrgencyBadge(c.urgency)}
-                <button class="btn btn-sm btn-primary" onclick="showToast('✅ Case accepted!')">Accept</button>
-              </div>
-            `).join('') : '<p style="color:var(--text-muted);">No incoming cases.</p>'}
+            <h3 style="margin-bottom:1rem;">📥 Open Cases <span class="badge badge-critical" style="font-size:0.6rem;" id="openBadge">Loading...</span></h3>
+            <div id="ngoOpenCases"><div style="color:var(--text-muted);padding:1rem;">Loading cases from server...</div></div>
           </div>
-          <!-- Active Cases -->
+
+          <!-- Active / In Progress Cases -->
           <div class="card animate-in" style="padding:1.5rem;">
-            <h3 style="margin-bottom:1rem;">🔄 Active Cases</h3>
-            ${active.map(c => `
-              <div style="display:flex;align-items:center;gap:1rem;padding:1rem 0;border-bottom:1px solid var(--border-glass);cursor:pointer;" onclick="navigate('/case/${c.id}')">
-                <div style="font-size:1.5rem;">${c.emoji}</div>
-                <div style="flex:1;">
-                  <div style="font-weight:600;">${c.title}</div>
-                  <div style="font-size:0.8rem;color:var(--text-muted);">📅 ${formatDateTime(c.reportedAt)}</div>
-                </div>
-                ${getStatusBadge(c.status)}
-                <div style="text-align:right;">
-                  <div style="font-size:0.85rem;color:var(--teal-light);">${formatCurrency(c.fundsRaised)}</div>
-                  <div style="font-size:0.7rem;color:var(--text-muted);">of ${formatCurrency(c.fundsRequired)}</div>
-                </div>
-              </div>
-            `).join('')}
+            <h3 style="margin-bottom:1rem;">🔄 In Progress Cases</h3>
+            <div id="ngoActiveCases"><div style="color:var(--text-muted);padding:1rem;">Loading cases from server...</div></div>
           </div>
         </div>
       </div>
     </div></section>`;
 }
-function initDashboardNgoPage() { }
+
+async function initDashboardNgoPage() {
+    // Load real cases from backend
+    try {
+        const res = await fetch('http://localhost:3000/api/cases?limit=100', {
+            headers: typeof getAuthHeaders === 'function' ? getAuthHeaders() : {}
+        });
+
+        if (!res.ok) throw new Error('Failed to fetch');
+
+        const json = await res.json();
+        const allCases = json.data || json || [];
+
+        const openCases     = allCases.filter(c => c.status === 'OPEN');
+        const activeCases   = allCases.filter(c => c.status === 'IN_PROGRESS');
+        const resolvedCases = allCases.filter(c => c.status === 'RESOLVED');
+
+        // Update stats
+        const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+        setEl('statOpen', openCases.length);
+        setEl('statActive', activeCases.length);
+        setEl('statResolved', resolvedCases.length);
+        setEl('statTotal', allCases.length);
+
+        // Update badge
+        const badge = document.getElementById('openBadge');
+        if (badge) badge.textContent = `${openCases.length} new`;
+
+        // Update live indicator
+        const indicator = document.getElementById('ngoLiveIndicator');
+        if (indicator) indicator.innerHTML = `<span style="width:8px;height:8px;border-radius:50%;background:var(--success);display:inline-block;animation:pulse 2s infinite;"></span> Live — ${allCases.length} cases loaded`;
+
+        // Render open cases
+        const openEl = document.getElementById('ngoOpenCases');
+        if (openEl) {
+            openEl.innerHTML = openCases.length > 0
+                ? openCases.map(c => renderNgoCaseRow(c, 'open')).join('')
+                : '<p style="color:var(--text-muted);">No open cases right now. 🎉</p>';
+        }
+
+        // Render active cases
+        const activeEl = document.getElementById('ngoActiveCases');
+        if (activeEl) {
+            activeEl.innerHTML = activeCases.length > 0
+                ? activeCases.map(c => renderNgoCaseRow(c, 'active')).join('')
+                : '<p style="color:var(--text-muted);">No cases in progress right now.</p>';
+        }
+
+    } catch (err) {
+        console.warn('Backend unreachable — using mock data', err);
+
+        // Fallback to mock data
+        const openCases   = MOCK_DATA.cases.filter(c => c.status === 'open');
+        const activeCases = MOCK_DATA.cases.filter(c => c.status === 'in-progress');
+
+        const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+        setEl('statOpen', openCases.length);
+        setEl('statActive', activeCases.length);
+        setEl('statResolved', MOCK_DATA.cases.filter(c => c.status === 'resolved').length);
+        setEl('statTotal', MOCK_DATA.cases.length);
+
+        const badge = document.getElementById('openBadge');
+        if (badge) badge.textContent = `${openCases.length} (demo)`;
+
+        const indicator = document.getElementById('ngoLiveIndicator');
+        if (indicator) indicator.innerHTML = `<span style="width:8px;height:8px;border-radius:50%;background:var(--warning);display:inline-block;"></span> Offline — showing demo data`;
+
+        document.getElementById('ngoOpenCases').innerHTML = openCases.length > 0
+            ? openCases.map(c => `
+                <div style="display:flex;align-items:center;gap:1rem;padding:1rem 0;border-bottom:1px solid var(--border-glass);">
+                  <div style="font-size:1.5rem;">${c.emoji || '🐾'}</div>
+                  <div style="flex:1;">
+                    <div style="font-weight:600;">${c.title}</div>
+                    <div style="font-size:0.8rem;color:var(--text-muted);">📍 ${c.location} • 🕐 ${timeAgo(c.reportedAt)}</div>
+                  </div>
+                  ${getUrgencyBadge(c.urgency)}
+                  <button class="btn btn-sm btn-primary" onclick="showToast('✅ Case accepted! (Demo mode)')">Accept</button>
+                </div>`).join('')
+            : '<p style="color:var(--text-muted);">No open cases.</p>';
+
+        document.getElementById('ngoActiveCases').innerHTML = activeCases.length > 0
+            ? activeCases.map(c => `
+                <div style="display:flex;align-items:center;gap:1rem;padding:1rem 0;border-bottom:1px solid var(--border-glass);cursor:pointer;" onclick="navigate('/case/${c.id}')">
+                  <div style="font-size:1.5rem;">${c.emoji || '🐾'}</div>
+                  <div style="flex:1;">
+                    <div style="font-weight:600;">${c.title}</div>
+                    <div style="font-size:0.8rem;color:var(--text-muted);">${formatDateTime(c.reportedAt)}</div>
+                  </div>
+                  ${getStatusBadge(c.status)}
+                  <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation();showToast('✅ Marked resolved! (Demo mode)')">✓ Resolve</button>
+                </div>`).join('')
+            : '<p style="color:var(--text-muted);">No active cases.</p>';
+    }
+}
+
+function renderNgoCaseRow(c, type) {
+    const title = c.title || c.description?.slice(0, 50) || 'Animal in Distress';
+    const time   = timeAgo(c.createdAt || c.reportedAt);
+    const loc    = c.city || c.location || 'Location reported';
+
+    if (type === 'open') {
+        return `
+        <div style="display:flex;align-items:center;gap:1rem;padding:1rem 0;border-bottom:1px solid var(--border-glass);">
+          <div style="font-size:1.5rem;">${c.emoji || '🐾'}</div>
+          <div style="flex:1;">
+            <div style="font-weight:600;">${title}</div>
+            <div style="font-size:0.8rem;color:var(--text-muted);">📍 ${loc} • 🕐 ${time}</div>
+            <div style="font-size:0.75rem;margin-top:2px;color:var(--text-muted);">ID: ${c.id?.slice(0,8)}...</div>
+          </div>
+          ${getUrgencyBadge(c.urgency)}
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-sm btn-primary" onclick="acceptCase('${c.id}', this)">Accept</button>
+            <button class="btn btn-sm btn-secondary" onclick="navigate('/case/${c.id}')">View</button>
+          </div>
+        </div>`;
+    }
+
+    // type === 'active'
+    return `
+    <div style="display:flex;align-items:center;gap:1rem;padding:1rem 0;border-bottom:1px solid var(--border-glass);">
+      <div style="font-size:1.5rem;">${c.emoji || '🐾'}</div>
+      <div style="flex:1;">
+        <div style="font-weight:600;">${title}</div>
+        <div style="font-size:0.8rem;color:var(--text-muted);">📍 ${loc} • 📅 ${time}</div>
+        <div style="font-size:0.75rem;margin-top:2px;color:var(--text-muted);">ID: ${c.id?.slice(0,8)}...</div>
+      </div>
+      ${getStatusBadge(c.status)}
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-sm btn-secondary" style="background:var(--success);color:#fff;border-color:var(--success);" onclick="markCaseResolved('${c.id}', this)">✓ Resolve</button>
+        <button class="btn btn-sm btn-secondary" onclick="navigate('/case/${c.id}')">View</button>
+      </div>
+    </div>`;
+}
+
+async function acceptCase(caseId, btn) {
+    btn.disabled = true;
+    btn.textContent = 'Accepting...';
+    try {
+        const res = await fetch(`http://localhost:3000/api/cases/${caseId}/status`, {
+            method: 'PATCH',
+            headers: typeof getAuthHeaders === 'function' ? getAuthHeaders() : { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'IN_PROGRESS' })
+        });
+        if (!res.ok) throw new Error('Failed');
+        showToast('✅ Case accepted and marked In Progress!');
+        // Refresh the dashboard
+        setTimeout(() => initDashboardNgoPage(), 500);
+    } catch (e) {
+        showToast('Could not accept case: ' + e.message, 'error');
+        btn.disabled = false;
+        btn.textContent = 'Accept';
+    }
+}
+
+async function markCaseResolved(caseId, btn) {
+    if (!confirm('Mark this case as RESOLVED? This will remove it from the active feed.')) return;
+
+    btn.disabled = true;
+    btn.textContent = 'Resolving...';
+    try {
+        const res = await fetch(`http://localhost:3000/api/cases/${caseId}/status`, {
+            method: 'PATCH',
+            headers: typeof getAuthHeaders === 'function' ? getAuthHeaders() : { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'RESOLVED' })
+        });
+        if (!res.ok) throw new Error((await res.json()).message || 'Failed');
+        showToast('🎉 Case marked as Resolved! Great work!');
+        // Refresh the dashboard
+        setTimeout(() => initDashboardNgoPage(), 500);
+    } catch (e) {
+        showToast('Could not resolve case: ' + e.message, 'error');
+        btn.disabled = false;
+        btn.textContent = '✓ Resolve';
+    }
+}

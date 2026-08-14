@@ -4,7 +4,8 @@
 
 function renderHome() {
   const stats = MOCK_DATA.stats;
-  const cases = MOCK_DATA.cases.filter(c => c.status !== 'resolved').slice(0, 6);
+  // Initially render with mock cases, then replace with real data after mount
+  const cases = MOCK_DATA.cases.filter(c => c.status !== 'resolved' && c.status !== 'RESOLVED').slice(0, 6);
   const ngos = MOCK_DATA.ngos.slice(0, 3);
   const testimonials = MOCK_DATA.testimonials;
 
@@ -115,42 +116,7 @@ function renderHome() {
           <a href="#/cases" class="btn btn-secondary animate-in">View All Cases →</a>
         </div>
         <div class="grid-3" id="homeCaseFeed">
-          ${cases.map((c, i) => {
-    const pct = c.fundsRequired > 0 ? Math.min(100, (c.fundsRaised / c.fundsRequired) * 100) : 0;
-    const needsHelp = c.fundsRaised < c.fundsRequired;
-    return `
-            <div class="case-card animate-in animate-delay-${(i % 3) + 1}" onclick="navigate('/case/${c.id}')">
-              <div class="case-card-img">
-                <span class="emoji">${c.emoji}</span>
-                ${getUrgencyBadge(c.urgency)}
-                ${needsHelp ? '<span class="badge badge-needs-help">💛 Needs Help</span>' : ''}
-              </div>
-              <div class="case-card-body">
-                <div class="case-card-title">${c.title}</div>
-                <div class="case-card-meta">
-                  <span>📍 ${c.location}</span>
-                  <span>🕐 ${timeAgo(c.reportedAt)}</span>
-                </div>
-                <p style="font-size:0.8rem; color:var(--text-muted); margin:var(--space-sm) 0; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${c.description}</p>
-                <div class="case-card-status">
-                  ${getStatusBadge(c.status)}
-                  <div class="case-card-ngo">${c.ngoAssigned ? getNgoById(c.ngoAssigned)?.name || '' : '⏳ Awaiting NGO'}</div>
-                </div>
-                ${c.fundsRequired > 0 ? `
-                <div class="case-fund-progress">
-                  <div class="stat-bar-track">
-                    <div class="stat-bar-fill ${pct >= 100 ? 'funded' : ''}" style="width:${pct}%;"></div>
-                  </div>
-                  <div class="case-fund-labels">
-                    <span class="case-fund-raised">${formatCurrency(c.fundsRaised)} raised</span>
-                    <span class="case-fund-goal">${formatCurrency(c.fundsRequired)} needed</span>
-                  </div>
-                </div>
-                ` : ''}
-                ${needsHelp ? `<a href="#/donate" class="btn btn-sm btn-donate-card" onclick="event.stopPropagation();">💰 Donate to Help</a>` : ''}
-              </div>
-            </div>
-          `}).join('')}
+          ${renderHomeCaseCards(cases)}
         </div>
       </div>
     </section>
@@ -279,90 +245,87 @@ function renderHome() {
         <div style="display:flex; gap:var(--space-md); justify-content:center; flex-wrap:wrap;" class="animate-in">
           <a href="#/report" class="btn btn-lg btn-primary">🚨 Report an Animal</a>
           <a href="#/donate" class="btn btn-lg btn-gold">💰 Donate Now</a>
-          <a href="#/ngos" class="btn btn-lg btn-secondary">🏢 Find NGOs</a>
+          <a href="#/ngos" class="btn btn-lg bt// ─── Shared card renderer (used for both mock & live data) ─────────────────
+function renderHomeCaseCards(cases) {
+  if (!cases || cases.length === 0) {
+    return `<div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--text-muted);">No active cases right now.</div>`;
+  }
+  return cases.map((c, i) => {
+    const pct = c.fundsRequired > 0 ? Math.min(100, ((c.fundsRaised || 0) / c.fundsRequired) * 100) : 0;
+    const needsHelp = (c.fundsRaised || 0) < (c.fundsRequired || 0);
+    const title = c.title || c.description?.slice(0, 50) || 'Animal in Distress';
+    const location = c.city || c.location || 'Location reported';
+    const time = timeAgo(c.createdAt || c.reportedAt);
+    return `
+      <div class="case-card animate-in visible animate-delay-${(i % 3) + 1}" onclick="navigate('/case/${c.id}')">
+        <div class="case-card-img">
+          <span class="emoji">${c.emoji || '🐾'}</span>
+          ${getUrgencyBadge(c.urgency)}
+          ${needsHelp ? '<span class="badge badge-needs-help">💛 Needs Help</span>' : ''}
         </div>
-      </div>
-    </section>
-  `;
+        <div class="case-card-body">
+          <div class="case-card-title">${title}</div>
+          <div class="case-card-meta">
+            <span>📍 ${location}</span>
+            <span>🕐 ${time}</span>
+          </div>
+          <p style="font-size:0.8rem;color:var(--text-muted);margin:var(--space-sm) 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${c.description || ''}</p>
+          <div class="case-card-status">
+            ${getStatusBadge(c.status)}
+            <div class="case-card-ngo">${c.assignedNgo?.orgName || (c.assignedNgoId ? 'NGO Assigned' : '⏳ Awaiting NGO')}</div>
+          </div>
+          ${c.fundsRequired > 0 ? `
+          <div class="case-fund-progress">
+            <div class="stat-bar-track">
+              <div class="stat-bar-fill ${pct >= 100 ? 'funded' : ''}" style="width:${pct}%;"></div>
+            </div>
+            <div class="case-fund-labels">
+              <span class="case-fund-raised">${formatCurrency(c.fundsRaised || 0)} raised</span>
+              <span class="case-fund-goal">${formatCurrency(c.fundsRequired)} needed</span>
+            </div>
+          </div>` : ''}
+          ${needsHelp ? `<a href="#/donate" class="btn btn-sm btn-donate-card" onclick="event.stopPropagation();">💰 Donate to Help</a>` : ''}
+        </div>
+      </div>`;
+  }).join('');
 }
 
 function initHomePage() {
-  setTimeout(() => {
-    initCounters();
-  }, 200);
+  setTimeout(() => { initCounters(); }, 200);
 
-  // Fetch Live Cases
-  fetch('http://localhost:3000/api/cases?limit=6')
+  // Fetch Live Cases from backend — replace mock feed when available
+  fetch('http://localhost:3000/api/cases?limit=6&status=OPEN')
     .then(res => res.json())
     .then(json => {
-      if (json.data && json.data.length > 0) {
-        document.getElementById('homeCaseFeed').innerHTML = json.data.map((c, i) => {
-          const pct = c.fundsRequired > 0 ? Math.min(100, (c.fundsRaised / c.fundsRequired) * 100) : 0;
-          const needsHelp = (c.fundsRaised || 0) < (c.fundsRequired || 0);
-          return `
-            <div class="case-card animate-in visible animate-delay-${(i % 3) + 1}" onclick="navigate('/case/${c.id}')">
-              <div class="case-card-img">
-                <span class="emoji">🐾</span>
-                ${getUrgencyBadge(c.urgency)}
-                ${needsHelp ? '<span class="badge badge-needs-help">💛 Needs Help</span>' : ''}
-              </div>
-              <div class="case-card-body">
-                <div class="case-card-title">${c.title || c.description.split(' - ')[0]}</div>
-                <div class="case-card-meta">
-                  <span>📍 ${c.city || 'Unknown'}</span>
-                  <span>🕐 ${timeAgo(c.createdAt)}</span>
-                </div>
-                <p style="font-size:0.8rem; color:var(--text-muted); margin:var(--space-sm) 0; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${c.description || ''}</p>
-                <div class="case-card-status">
-                  ${getStatusBadge(c.status)}
-                  <div class="case-card-ngo">${c.assignedNgoId ? 'Assigned' : '⏳ Awaiting NGO'}</div>
-                </div>
-                ${c.fundsRequired > 0 ? `
-                <div class="case-fund-progress">
-                  <div class="stat-bar-track">
-                    <div class="stat-bar-fill ${pct >= 100 ? 'funded' : ''}" style="width:${pct}%;"></div>
-                  </div>
-                  <div class="case-fund-labels">
-                    <span class="case-fund-raised">${formatCurrency(c.fundsRaised || 0)} raised</span>
-                    <span class="case-fund-goal">${formatCurrency(c.fundsRequired)} needed</span>
-                  </div>
-                </div>
-                ` : ''}
-                ${needsHelp ? `<a href="#/donate" class="btn btn-sm btn-donate-card" onclick="event.stopPropagation();">💰 Donate to Help</a>` : ''}
-              </div>
-            </div>
-          `}).join('');
+      const feed = document.getElementById('homeCaseFeed');
+      if (!feed) return;
+      const liveCases = json.data || json;
+      if (Array.isArray(liveCases) && liveCases.length > 0) {
+        feed.innerHTML = renderHomeCaseCards(liveCases);
       }
     })
-    .catch(err => console.error("Error fetching homepage cases", err));
+    .catch(() => { /* Keep mock data already rendered */ });
 
-  // Fetch Live NGOs
+  // Fetch Live NGOs from backend
   fetch('http://localhost:3000/api/ngos?limit=3')
     .then(res => res.json())
     .then(json => {
-      if (json.data && json.data.length > 0) {
-        document.getElementById('homeNgoFeed').innerHTML = json.data.map((ngo, i) => `
-            <div class="ngo-card animate-in visible animate-delay-${i + 1}" onclick="navigate('/ngo/${ngo.id}')">
-              <div class="ngo-avatar">🏢</div>
-              <h3>${ngo.orgName || ngo.name} <span class="badge badge-verified" style="font-size:0.65rem;">✅ Verified</span></h3>
-              <div class="ngo-location">📍 ${ngo.city || 'Available'}</div>
-              <div class="ngo-card-stats">
-                <div>
-                  <div class="value">${ngo.rescueStats && typeof ngo.rescueStats === 'string' ? JSON.parse(ngo.rescueStats).totalRescues : (ngo.rescueStats?.totalRescues || 0)}</div>
-                  <div class="label">Rescues</div>
-                </div>
-                <div>
-                  <div class="value">${ngo.rescueStats && typeof ngo.rescueStats === 'string' ? JSON.parse(ngo.rescueStats).successRate : (ngo.rescueStats?.successRate || 0)}%</div>
-                  <div class="label">Success</div>
-                </div>
-                <div>
-                  <div class="value">⭐ ${ngo.rating || 0}</div>
-                  <div class="label">rating</div>
-                </div>
-              </div>
+      const ngoFeed = document.getElementById('homeNgoFeed');
+      if (!ngoFeed) return;
+      const liveNgos = json.data || json;
+      if (Array.isArray(liveNgos) && liveNgos.length > 0) {
+        ngoFeed.innerHTML = liveNgos.map((ngo, i) => `
+          <div class="ngo-card animate-in visible animate-delay-${i + 1}" onclick="navigate('/ngo/${ngo.id}')">
+            <div class="ngo-avatar">🏢</div>
+            <h3>${ngo.orgName || ngo.name} <span class="badge badge-verified" style="font-size:0.65rem">✅ Verified</span></h3>
+            <div class="ngo-location">📍 ${ngo.city || 'Available'}</div>
+            <div class="ngo-card-stats">
+              <div><div class="value">${(() => { try { const s = typeof ngo.rescueStats === 'string' ? JSON.parse(ngo.rescueStats) : (ngo.rescueStats || {}); return s.totalRescues || 0; } catch { return 0; } })()}</div><div class="label">Rescues</div></div>
+              <div><div class="value">${(() => { try { const s = typeof ngo.rescueStats === 'string' ? JSON.parse(ngo.rescueStats) : (ngo.rescueStats || {}); return (s.successRate || 0) + '%'; } catch { return '0%'; } })()}</div><div class="label">Success</div></div>
+              <div><div class="value">⭐ ${ngo.rating || 0}</div><div class="label">rating</div></div>
             </div>
-          `).join('');
+          </div>`).join('');
       }
     })
-    .catch(err => console.error("Error fetching homepage NGOs", err));
+    .catch(() => { /* Keep mock NGOs */ });
 }
