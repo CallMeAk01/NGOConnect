@@ -55,11 +55,18 @@ export class CasesService {
             console.error('Failed to query nearby NGOs:', error);
         }
 
+        // Informed NGOs = up to 4 nearest that are NOT the assigned one
+        const informedNgoIds = nearbyNgos
+            .filter(n => n.id !== assignedNgoId)
+            .slice(0, 4)
+            .map(n => n.id);
+
         // 3. Create Case
         const newCase = await this.prisma.case.create({
             data: {
                 reporterId: reporterId || null,
                 assignedNgoId: assignedNgoId,
+                informedNgoIds: JSON.stringify(informedNgoIds),
                 latitude: dto.latitude,
                 longitude: dto.longitude,
                 urgency: dto.urgency,
@@ -270,6 +277,11 @@ export class CasesService {
                     previousStatus,
                     newStatus: dto.status,
                     changedAt: new Date().toISOString(),
+                    // Proof of resolution (only present when status = RESOLVED)
+                    ...(dto.status === 'RESOLVED' && {
+                        proofImage: dto.proofImage || null,
+                        resolutionNote: dto.resolutionNote || null,
+                    }),
                 }),
             },
         });
@@ -286,17 +298,17 @@ export class CasesService {
         return updatedCase;
     }
 
-    // ─── Get Case by ID ───────────────────────────────────────────────
+        // ─── Get Case by ID ───────────────────────────────────────────────
     async findCaseById(caseId: string) {
         const rescueCase = await this.prisma.case.findUnique({
             where: { id: caseId },
             include: {
-                reporter: { select: { id: true, email: true, role: true } },
-                assignedNgo: { select: { id: true, orgName: true } },
+                reporter: { select: { id: true, email: true, role: true, name: true } },
+                assignedNgo: { select: { id: true, orgName: true, latitude: true, longitude: true } },
                 activityLogs: {
                     orderBy: { timestamp: 'asc' },
                     include: {
-                        actor: { select: { id: true, email: true, role: true } },
+                        actor: { select: { id: true, email: true, role: true, name: true } },
                     },
                 },
             },
@@ -306,7 +318,19 @@ export class CasesService {
             throw new NotFoundException(`Case with ID ${caseId} not found`);
         }
 
-        return rescueCase;
+        // Resolve informed NGO details from the JSON array of IDs
+        let informedNgos: any[] = [];
+        try {
+            const ids: string[] = JSON.parse(rescueCase.informedNgoIds || '[]');
+            if (ids.length > 0) {
+                informedNgos = await this.prisma.nGOProfile.findMany({
+                    where: { id: { in: ids } },
+                    select: { id: true, orgName: true, latitude: true, longitude: true, rating: true },
+                });
+            }
+        } catch { /* ignore parse errors */ }
+
+        return { ...rescueCase, informedNgos };
     }
 
     // ─── Auto-Escalation Check ────────────────────────────────────────

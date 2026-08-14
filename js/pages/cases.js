@@ -56,8 +56,16 @@ function generateCasesContent(cases) {
         <p id="caseCount" style="color:var(--text-muted); margin-bottom:var(--space-lg); font-size:0.9rem;">Showing ${cases.length} cases</p>
 
         <!-- Map Container -->
-        <div id="casesMap" style="width:100%; height:400px; border-radius:12px; margin-bottom:var(--space-2xl); background:var(--bg-glass); display:flex; align-items:center; justify-content:center; border:1px solid var(--border-glass);">
+        <div id="casesMap" style="width:100%; height:400px; border-radius:12px; margin-bottom:var(--space-md); background:var(--bg-glass); display:flex; align-items:center; justify-content:center; border:1px solid var(--border-glass);">
           <span style="color:var(--text-muted);">Loading Live Rescue Map...</span>
+        </div>
+        <!-- Map Legend -->
+        <div id="mapLegend" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:var(--space-2xl);font-size:0.8rem;color:var(--text-muted);">
+          <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:#DC2626;display:inline-block;"></span>Critical</span>
+          <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:#F59E0B;display:inline-block;"></span>Moderate</span>
+          <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:#16A34A;display:inline-block;"></span>Stable</span>
+          <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#2563EB;display:inline-block;opacity:0.6;"></span>In Progress</span>
+          <span style="color:var(--text-muted);">(Resolved cases are hidden)</span>
         </div>
 
         <!-- Cases Grid -->
@@ -204,22 +212,60 @@ function plotCasesOnMap(casesToRender) {
 
   casesToRender.forEach((c) => {
     if (!c.latitude || !c.longitude) return;
-    const color = urgencyColors[c.urgency] || '#2563EB';
+
+    const status = (c.status || '').toUpperCase();
+
+    // RESOLVED cases disappear from the map completely
+    if (status === 'RESOLVED') return;
+
+    let color, radius, fillOpacity, label;
+
+    if (status === 'IN_PROGRESS') {
+      // Being handled — show as smaller blue dot
+      color = '#2563EB';
+      radius = 7;
+      fillOpacity = 0.55;
+      label = '🔵 In Progress';
+    } else {
+      // OPEN — urgency colored
+      color = urgencyColors[c.urgency] || '#F59E0B';
+      radius = 10;
+      fillOpacity = 0.85;
+      label = `● ${(c.urgency || '').toUpperCase()}`;
+    }
+
     const marker = L.circleMarker([c.latitude, c.longitude], {
-      radius: 10, fillColor: color, color: '#fff', fillOpacity: 0.85, weight: 2, opacity: 0.9
+      radius, fillColor: color, color: '#fff', fillOpacity, weight: 2, opacity: 0.9
     }).addTo(casesMapInstance);
+
     marker.bindPopup(`
-      <div style="min-width:180px;">
-        <strong>${c.title || c.description?.slice(0, 40)}</strong><br/>
-        <span style="color:${color};font-weight:600;">● ${(c.urgency || '').toUpperCase()}</span>
-        <span style="margin-left:8px;">${c.status || ''}</span>
+      <div style="min-width:200px;">
+        <strong>${c.title || c.description?.slice(0, 40) || 'Animal in Distress'}</strong><br/>
+        <span style="color:${color};font-weight:600;">${label}</span>
+        <span style="margin-left:8px;font-size:0.8em;">${status === 'IN_PROGRESS' ? '🔄 Being handled' : ''}</span>
         <br/><small>📍 ${c.city || c.location || ''}</small>
-        ${c.id ? `<br/><a href="#/case/${c.id}" style="color:#2563EB;">View Details →</a>` : ''}
+        ${c.aiVerdict && c.aiVerdict !== 'PENDING' ? `<br/><small style="color:${c.aiVerdict === 'LIKELY_REAL' ? '#16a34a' : c.aiVerdict === 'SUSPICIOUS' ? '#d97706' : '#dc2626'};">🤖 AI: ${c.aiVerdict.replace('_', ' ')}</small>` : ''}
+        ${c.id ? `<br/><a href="#/case/${c.id}" style="color:#2563EB;font-size:0.85em;">View Details →</a>` : ''}
       </div>
     `);
     mapMarkers.push(marker);
   });
+
+  // Update the map legend
+  const legend = document.getElementById('mapLegend');
+  const openCount = casesToRender.filter(c => (c.status || '').toUpperCase() === 'OPEN').length;
+  const activeCount = casesToRender.filter(c => (c.status || '').toUpperCase() === 'IN_PROGRESS').length;
+  if (legend) {
+    legend.innerHTML = `
+      <span style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;"><span style="width:10px;height:10px;border-radius:50%;background:#DC2626;display:inline-block;"></span>Critical (${casesToRender.filter(c => c.urgency?.toUpperCase()==='CRITICAL' && c.status?.toUpperCase()!=='RESOLVED').length})</span>
+      <span style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;"><span style="width:10px;height:10px;border-radius:50%;background:#F59E0B;display:inline-block;"></span>Moderate</span>
+      <span style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;"><span style="width:10px;height:10px;border-radius:50%;background:#16A34A;display:inline-block;"></span>Stable</span>
+      <span style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;"><span style="width:8px;height:8px;border-radius:50%;background:#2563EB;display:inline-block;opacity:0.6;"></span>In Progress (${activeCount})</span>
+      <span style="color:var(--text-muted);font-size:0.8rem;">${openCount} open pins shown</span>
+    `;
+  }
 }
+
 
 function filterCases() {
   const search = document.getElementById('caseSearch').value.toLowerCase();

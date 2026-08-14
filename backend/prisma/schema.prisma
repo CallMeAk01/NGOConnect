@@ -73,6 +73,7 @@ model Case {
   images        String      @default("[]") // Was String[]
   aiVerdict     String?     @default("PENDING") @map("ai_verdict")   // LIKELY_REAL | SUSPICIOUS | LIKELY_FAKE | PENDING
   aiConfidence  Int?        @default(0) @map("ai_confidence")          // 0-100
+  informedNgoIds String     @default("[]") @map("informed_ngo_ids")    // JSON array of NGO IDs informed but not assigned
   createdAt     DateTime    @default(now()) @map("created_at")
   updatedAt     DateTime    @updatedAt @map("updated_at")
 
