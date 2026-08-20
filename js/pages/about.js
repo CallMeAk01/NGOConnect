@@ -3,7 +3,6 @@
 // ============================================================
 
 function renderAbout() {
-    const team = MOCK_DATA.team;
     return `
     <div class="page-header">
       <div class="container">
@@ -26,20 +25,6 @@ function renderAbout() {
         </div>
       </div>
 
-      <!-- Team -->
-      <div class="text-center animate-in" style="margin-bottom:3rem;">
-        <h2 class="section-title">Our Team</h2>
-        <p class="section-subtitle">The people behind the platform</p>
-        <div class="grid-4">
-          ${team.map(t => `
-            <div class="card" style="text-align:center;">
-              <div style="font-size:3rem;margin-bottom:0.5rem;">${t.emoji}</div>
-              <h3 style="font-size:1rem;">${t.name}</h3>
-              <p style="color:var(--text-muted);font-size:0.85rem;">${t.role}</p>
-            </div>
-          `).join('')}
-        </div>
-      </div>
 
       <!-- Technology -->
       <div class="card animate-in" style="margin-bottom:3rem;padding:2.5rem;">
