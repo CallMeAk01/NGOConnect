@@ -84,7 +84,9 @@ function initAuthPage() { }
  * The backend (Passport) will handle the redirect to Google's consent screen.
  */
 function handleGoogleLogin() {
-  window.location.href = 'http://localhost:3000/api/auth/google';
+  // Google OAuth creds are placeholders on this machine — never hard-redirect
+  // to Google, or users hit an "Access blocked — client was not found" page.
+  showToast('Google login is not configured yet — use email/password for now', 'info');
 }
 
 /**

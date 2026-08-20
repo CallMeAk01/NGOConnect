@@ -10,8 +10,10 @@ const LiveUpdates = {
         const indicator = document.getElementById('liveIndicator');
 
         try {
-            // Connect to the backend WebSocket namespace
-            this.socket = io('http://localhost:3000/events', {
+            // Connect to the backend WebSocket namespace (origin-derived so it
+            // works from localhost, 127.0.0.1, or a LAN IP)
+            const wsOrigin = `${location.protocol}//${location.hostname}:3000`;
+            this.socket = io(`${wsOrigin}/events`, {
                 transports: ['websocket', 'polling'],
                 reconnection: true,
                 reconnectionDelay: 2000,

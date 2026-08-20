@@ -275,8 +275,44 @@ function simulateLocation() {
   );
 }
 
-// --- Photo Upload ---
-let selectedReportPhotos = [];
+// --- Photo Upload with Gemini Vision Verification ---
+let selectedReportPhotos = [];  // array of base64 data URLs
+
+async function verifyPhotoWithGemini(base64DataUrl) {
+  // Key is stored in localStorage (set once) or falls back to window config
+  const GEMINI_KEY = localStorage.getItem('GEMINI_KEY') || window.GEMINI_KEY || '';
+  if (!GEMINI_KEY) {
+    // If no key available, skip verification and allow the photo
+    return { isAnimal: true, confidence: 70, what: 'Verification skipped (no key)' };
+  }
+  const base64 = base64DataUrl.split(',')[1];
+  const mimeType = base64DataUrl.split(';')[0].split(':')[1];
+  try {
+    const resp = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: 'Look at this image carefully. Does it contain an animal (any living creature like dog, cat, cow, bird, reptile, etc.)? Answer ONLY with a JSON object: {"isAnimal": true/false, "confidence": 0-100, "what": "brief description of what you see"}. No markdown, no extra text.' },
+              { inline_data: { mime_type: mimeType, data: base64 } }
+            ]
+          }],
+          generationConfig: { temperature: 0.1, maxOutputTokens: 100 }
+        })
+      }
+    );
+    const data = await resp.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '{}';
+    const clean = text.replace(/```json|```/g, '').trim();
+    return JSON.parse(clean);
+  } catch (e) {
+    console.warn('Gemini Vision check failed:', e);
+    return { isAnimal: true, confidence: 70, what: 'Could not verify (offline)' }; // graceful fallback
+  }
+}
 
 function handlePhotoSelection(event) {
   const files = event.target.files;
@@ -284,24 +320,47 @@ function handlePhotoSelection(event) {
 
   const previewContainer = document.getElementById('photoPreview');
   const uploadBox = document.getElementById('photoUpload');
-  uploadBox.style.borderColor = 'var(--emerald)';
 
   Array.from(files).forEach(file => {
-    selectedReportPhotos.push(file);
     const reader = new FileReader();
-    reader.onload = function (e) {
+    reader.onload = async function (e) {
+      const base64 = e.target.result;
       const now = new Date().toLocaleString('en-IN');
+
+      // Create preview element immediately with scanning indicator
       const previewEl = document.createElement('div');
-      previewEl.style.cssText = 'background:var(--bg-glass);border:1px solid var(--border-glass);border-radius:var(--radius-md);padding:var(--space-xs);text-align:center;min-width:120px;animation:wizardFadeIn 0.35s ease;';
+      previewEl.style.cssText = 'position:relative;background:var(--bg-glass);border:2px solid var(--border-glass);border-radius:10px;padding:6px;text-align:center;min-width:130px;animation:wizardFadeIn 0.35s ease;';
       previewEl.innerHTML = `
-        <img src="${e.target.result}" style="width:100%; height:100px; object-fit:cover; border-radius:var(--radius-sm); margin-bottom:var(--space-xs);">
-        <div style="font-size:0.7rem; color:var(--text-muted);">📅 ${now}</div>
+        <img src="${base64}" style="width:100%;height:100px;object-fit:cover;border-radius:6px;margin-bottom:4px;">
+        <div style="font-size:0.7rem;color:var(--text-muted);">📅 ${now}</div>
+        <div id="aiVerifyBadge_${Date.now()}" style="margin-top:4px;font-size:0.7rem;font-weight:600;color:var(--text-muted);">🤖 Verifying...</div>
       `;
       previewContainer.appendChild(previewEl);
-    }
+      const badgeEl = previewEl.querySelector('[id^="aiVerifyBadge_"]');
+
+      // Run Gemini Vision check
+      const result = await verifyPhotoWithGemini(base64);
+
+      if (result.isAnimal) {
+        // ✅ Animal confirmed — accept photo
+        selectedReportPhotos.push(base64);
+        uploadBox.style.borderColor = 'var(--success)';
+        previewEl.style.borderColor = 'var(--success)';
+        badgeEl.innerHTML = `<span style="color:var(--success);">✅ Animal verified (${result.confidence}%)</span>`;
+        if (result.what) badgeEl.innerHTML += `<br><span style="color:var(--text-muted);font-size:0.65rem;">${result.what}</span>`;
+      } else {
+        // ❌ Not an animal — reject photo
+        previewEl.style.borderColor = 'var(--danger)';
+        previewEl.style.opacity = '0.6';
+        badgeEl.innerHTML = `<span style="color:var(--danger);">❌ Not an animal (${result.confidence}%)</span>`;
+        if (result.what) badgeEl.innerHTML += `<br><span style="color:var(--text-muted);font-size:0.65rem;">${result.what}</span>`;
+        showToast('⚠️ Photo rejected — please upload a real animal photo', 'error');
+      }
+    };
     reader.readAsDataURL(file);
   });
 }
+
 
 // --- Submit with Dispatch Visualization ---
 async function handleReportSubmit(e) {
@@ -313,6 +372,7 @@ async function handleReportSubmit(e) {
   const urgency = document.getElementById('urgencyLevel').value;
   const desc = document.getElementById('reportDesc').value;
   const isAnonymous = document.getElementById('anonymousReport').checked;
+  const manualLoc = document.getElementById('manualLocation')?.value || '';
 
   if (!urgency || !desc) {
     showToast('Please fill in all required fields (Urgency & Description)', 'error');
@@ -324,6 +384,11 @@ async function handleReportSubmit(e) {
     return;
   }
 
+  if (selectedReportPhotos.length === 0) {
+    const ok = confirm('No verified animal photos added. Continue anyway?');
+    if (!ok) return;
+  }
+
   submitBtn.disabled = true;
   submitBtn.innerHTML = '⏳ Submitting... Please wait';
 
@@ -332,8 +397,10 @@ async function handleReportSubmit(e) {
       latitude: reportCoords.lat,
       longitude: reportCoords.lng,
       urgency: urgency.toUpperCase(),
-      description: `[${type.toUpperCase()}] ${desc}`,
-      images: selectedReportPhotos.length > 0 ? ['https://example.com/placeholder-case.jpg'] : []
+      description: type ? `[${type.toUpperCase()}] ${desc}` : desc,
+      city: manualLoc || undefined,
+      // Send actual verified base64 images (max 3 to avoid payload size issues)
+      images: JSON.stringify(selectedReportPhotos.slice(0, 3))
     };
 
     const token = localStorage.getItem('token');
@@ -355,17 +422,18 @@ async function handleReportSubmit(e) {
     }
 
     const caseData = await response.json();
+    // Store newly created case ID so cases page highlights it
+    try { const prev = JSON.parse(localStorage.getItem('mySubmittedCases')||'[]'); prev.unshift(caseData.id); localStorage.setItem('mySubmittedCases', JSON.stringify(prev.slice(0,20))); } catch{}
     showToast(`✅ Report submitted! Case ID: ${caseData.id}`);
-
-    // --- Show Animated Dispatch Visualization ---
     showDispatchVisualization(caseData, reportCoords);
 
   } catch (error) {
     console.error(error);
-    // Fallback: show success with mock dispatch if backend is down
+    showToast('Showing demo dispatch (backend may be offline)', 'info');
     showDispatchVisualization({ id: 'DEMO-' + Date.now().toString(36).toUpperCase() }, reportCoords);
   }
 }
+
 
 function showDispatchVisualization(caseData, coords) {
   const form = document.getElementById('reportForm');

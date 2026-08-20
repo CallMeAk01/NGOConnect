@@ -73,18 +73,68 @@ function updateNavbar() {
         const role = (user.role || 'REPORTER').toUpperCase();
         const dashMap = { REPORTER: '/dashboard/reporter', NGO: '/dashboard/ngo', DONOR: '/dashboard/donor', ADMIN: '/dashboard/reporter' };
         const dashPath = dashMap[role] || '/dashboard/reporter';
+        const initials = (user.name || user.email || 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+        const roleColors = { REPORTER: '#14b8a6', NGO: '#2563eb', DONOR: '#f59e0b', ADMIN: '#dc2626' };
+        const avatarColor = roleColors[role] || '#14b8a6';
         authBtn.outerHTML = `
-          <div id="navAuthBtn" style="display:flex;align-items:center;gap:8px;">
-            <a href="#${dashPath}" class="btn btn-sm btn-secondary" style="font-weight:600;">👤 ${user.name || user.email?.split('@')[0] || 'Account'}</a>
-            <button class="btn btn-sm btn-danger" onclick="logout()" style="padding:0.3rem 0.7rem;">Logout</button>
+          <div id="navAuthBtn" style="position:relative;display:inline-block;">
+            <div id="userAvatarBtn" onclick="toggleUserDropdown()" style="
+              width:36px;height:36px;border-radius:50%;background:${avatarColor};
+              color:#fff;font-weight:700;font-size:0.85rem;display:flex;
+              align-items:center;justify-content:center;cursor:pointer;
+              border:2px solid rgba(255,255,255,0.3);box-shadow:0 2px 8px rgba(0,0,0,0.3);
+              user-select:none;transition:transform 0.15s ease;" 
+              title="${user.name || user.email}"
+              onmouseover="this.style.transform='scale(1.1)'"
+              onmouseout="this.style.transform='scale(1)'">${initials}</div>
+            <div id="userDropdown" style="
+              display:none;position:absolute;right:0;top:calc(100% + 8px);
+              background:var(--bg-card);border:1px solid var(--border-glass);
+              border-radius:12px;min-width:200px;padding:8px;
+              box-shadow:0 8px 32px rgba(0,0,0,0.4);z-index:9999;
+              backdrop-filter:blur(12px);">
+              <div style="padding:10px 12px;border-bottom:1px solid var(--border-glass);margin-bottom:4px;">
+                <div style="font-weight:700;font-size:0.9rem;">${user.name || 'User'}</div>
+                <div style="font-size:0.75rem;color:var(--text-muted);">${user.email || ''}</div>
+                <div style="font-size:0.7rem;margin-top:3px;"><span style="padding:2px 7px;border-radius:10px;background:${avatarColor}22;color:${avatarColor};font-weight:600;">${role}</span></div>
+              </div>
+              <a href="#${dashPath}" onclick="closeUserDropdown()" style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;color:var(--text-primary);text-decoration:none;font-size:0.85rem;transition:background 0.15s;" onmouseover="this.style.background='var(--bg-glass)'" onmouseout="this.style.background='transparent'">📊 My Dashboard</a>
+              <a href="#/report" onclick="closeUserDropdown()" style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;color:var(--text-primary);text-decoration:none;font-size:0.85rem;transition:background 0.15s;" onmouseover="this.style.background='var(--bg-glass)'" onmouseout="this.style.background='transparent'">🚨 Report Animal</a>
+              <div style="border-top:1px solid var(--border-glass);margin:4px 0;"></div>
+              <button onclick="logout();closeUserDropdown();" style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;color:#dc2626;background:none;border:none;width:100%;font-size:0.85rem;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='rgba(220,38,38,0.08)'" onmouseout="this.style.background='transparent'">🚪 Logout</button>
+            </div>
           </div>`;
     } else {
         authBtn.outerHTML = `<a id="navAuthBtn" href="#/login" class="btn btn-sm btn-secondary nav-auth-btn">Login</a>`;
     }
 }
 
+function toggleUserDropdown() {
+    const dd = document.getElementById('userDropdown');
+    if (!dd) return;
+    const isOpen = dd.style.display !== 'none';
+    dd.style.display = isOpen ? 'none' : 'block';
+    if (!isOpen) {
+        // Close on outside click
+        setTimeout(() => {
+            document.addEventListener('click', function closeDD(e) {
+                if (!document.getElementById('navAuthBtn')?.contains(e.target)) {
+                    closeUserDropdown();
+                    document.removeEventListener('click', closeDD);
+                }
+            });
+        }, 0);
+    }
+}
+
+function closeUserDropdown() {
+    const dd = document.getElementById('userDropdown');
+    if (dd) dd.style.display = 'none';
+}
+
 // Protected routes that require login
 const PROTECTED_ROUTES = ['/report', '/dashboard/reporter', '/dashboard/ngo', '/dashboard/donor'];
+
 
 // --- Router ---
 function getHash() {

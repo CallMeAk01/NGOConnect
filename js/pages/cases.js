@@ -91,17 +91,32 @@ function renderCaseCards(cases) {
   if (!cases || cases.length === 0) {
     return `<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-muted);">No cases found matching your filters.</div>`;
   }
+  const mySubmittedIds = (() => { try { return JSON.parse(localStorage.getItem('mySubmittedCases')||'[]'); } catch { return []; } })();
+  const currentUser = (() => { try { return JSON.parse(localStorage.getItem('user')||'null'); } catch { return null; } })();
+
   return cases.map((c, i) => {
     const pct = c.fundsRequired > 0 ? Math.min(100, ((c.fundsRaised || 0) / c.fundsRequired) * 100) : 0;
     const needsHelp = (c.fundsRaised || 0) < (c.fundsRequired || 0) && c.status !== 'resolved' && c.status !== 'RESOLVED';
     const displayTitle = c.title || c.description?.slice(0, 50) || 'Animal in Distress';
-    const ngoLabel = c.assignedNgo?.orgName || (c.assignedNgoId ? 'NGO Assigned' : '⏳ Awaiting NGO');
+    const ngoLabel = c.assignedNgo?.orgName || (c.assignedNgoId ? '🏢 NGO Assigned' : '⏳ Awaiting NGO');
+    const isMyCase = mySubmittedIds.includes(c.id) || (currentUser && c.reporterId === currentUser.id);
+
+    // Try to show a real photo from the case
+    let photoHtml = `<span class="emoji">🐾</span>`;
+    try {
+      const imgs = JSON.parse(c.images || '[]');
+      if (imgs.length > 0 && imgs[0].startsWith('data:')) {
+        photoHtml = `<img src="${imgs[0]}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;" alt="Case photo">`;
+      }
+    } catch {}
+
     return `
     <div class="case-card animate-in animate-delay-${(i % 4) + 1}" data-city="${c.city || ''}" data-urgency="${c.urgency}" data-status="${c.status}" onclick="navigate('/case/${c.id}')">
       <div class="case-card-img">
-        <span class="emoji">🐾</span>
+        ${photoHtml}
         ${getUrgencyBadge(c.urgency)}
-        ${needsHelp ? '<span class="badge badge-needs-help">💛 Needs Help</span>' : ''}
+        ${isMyCase ? '<span class="badge" style="background:rgba(20,184,166,0.85);color:#fff;font-size:0.6rem;font-weight:700;">📱 Your Case</span>' : ''}
+        ${needsHelp && !isMyCase ? '<span class="badge badge-needs-help">💛 Needs Help</span>' : ''}
       </div>
       <div class="case-card-body">
         <div class="case-card-title">${displayTitle}</div>
@@ -138,7 +153,9 @@ window.LIVE_CASES = [];
 
 async function initCasesPage() {
   try {
-    const res = await fetch('http://localhost:3000/api/cases?limit=100');
+    // Fetch all cases (no hard limit so newly submitted ones appear)
+    const res = await fetch('http://localhost:3000/api/cases?limit=500&sortBy=createdAt&order=desc');
+
     const json = await res.json();
     window.LIVE_CASES = json.data;
   } catch (e) {

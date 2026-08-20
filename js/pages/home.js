@@ -245,7 +245,14 @@ function renderHome() {
         <div style="display:flex; gap:var(--space-md); justify-content:center; flex-wrap:wrap;" class="animate-in">
           <a href="#/report" class="btn btn-lg btn-primary">🚨 Report an Animal</a>
           <a href="#/donate" class="btn btn-lg btn-gold">💰 Donate Now</a>
-          <a href="#/ngos" class="btn btn-lg bt// ─── Shared card renderer (used for both mock & live data) ─────────────────
+          <a href="#/ngos" class="btn btn-lg btn-secondary">🏢 Find NGOs</a>
+        </div>
+      </section>
+    </div>
+  `;
+}
+
+// ─── Shared card renderer (used for both mock & live data) ─────────────────
 function renderHomeCaseCards(cases) {
   if (!cases || cases.length === 0) {
     return `<div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--text-muted);">No active cases right now.</div>`;
