@@ -1,24 +1,32 @@
-// ============================================================
-// NGO CONNECT — NGO Profile Page
-// ============================================================
-
 function renderNgoProfile(ngoId) {
   const ngo = getNgoById(ngoId);
   if (!ngo) return render404();
 
   const ngoCases = MOCK_DATA.cases.filter(c => c.ngoAssigned === ngoId);
 
+  // Build avatar — large circle with emoji inside
+  const avatarBg = { 'ngo-1': '#14b8a6', 'ngo-2': '#2563eb', 'ngo-3': '#f59e0b', 'ngo-4': '#8b5cf6', 'ngo-5': '#ec4899', 'ngo-6': '#ef4444' };
+  const bgColor = avatarBg[ngoId] || '#14b8a6';
+
   return `
     <div class="page-header">
       <div class="container">
-        <div class="ngo-avatar" style="width:100px; height:100px; font-size:2.5rem; margin:0 auto var(--space-lg);">${ngo.emoji}</div>
+        <!-- Profile Picture -->
+        <div style="width:100px;height:100px;border-radius:50%;background:${bgColor};display:flex;align-items:center;justify-content:center;font-size:2.8rem;margin:0 auto var(--space-lg);border:4px solid rgba(255,255,255,0.2);box-shadow:0 8px 32px rgba(0,0,0,0.3);">
+          ${ngo.emoji}
+        </div>
         <h1>${ngo.name}</h1>
-        <div style="display:flex; gap:var(--space-md); justify-content:center; align-items:center; margin-top:var(--space-sm);">
+        <div style="display:flex; gap:var(--space-md); justify-content:center; align-items:center; margin-top:var(--space-sm); flex-wrap:wrap;">
           <span class="badge badge-verified">✅ Verified since ${formatDate(ngo.verifiedDate)}</span>
           <span style="color:var(--text-muted);">📍 ${ngo.city}</span>
           <span style="color:var(--gold-light);">⭐ ${ngo.rating} (${ngo.reviewCount} reviews)</span>
         </div>
-        <p style="margin-top:var(--space-md);">${ngo.description}</p>
+        <p style="margin-top:var(--space-md); max-width:600px; margin-left:auto; margin-right:auto;">${ngo.description}</p>
+        <!-- Quick donate CTA -->
+        <div style="margin-top:var(--space-lg); display:flex; gap:var(--space-md); justify-content:center; flex-wrap:wrap;">
+          <a href="#/donate" class="btn btn-gold">💰 Donate to This NGO</a>
+          <button class="btn btn-secondary" onclick="document.getElementById('reviewForm').scrollIntoView({behavior:'smooth'})">⭐ Rate This NGO</button>
+        </div>
       </div>
     </div>
 
@@ -69,19 +77,21 @@ function renderNgoProfile(ngoId) {
               </div>
             </div>
 
-            <!-- Activity History -->
-            <div class="card animate-in">
-              <h3 style="margin-bottom:var(--space-lg);">📜 Case Activity History</h3>
-              ${ngoCases.length > 0 ? ngoCases.map(c => `
-                <div style="display:flex; align-items:center; gap:var(--space-md); padding:var(--space-md); border-bottom:1px solid var(--border-glass); cursor:pointer;" onclick="navigate('/case/${c.id}')">
-                  <div style="font-size:1.5rem;">${c.emoji}</div>
-                  <div style="flex:1;">
-                    <div style="font-weight:600; font-size:0.9rem;">${c.title}</div>
-                    <div style="font-size:0.8rem; color:var(--text-muted);">📅 ${formatDate(c.reportedAt)} • 📍 ${c.city}</div>
-                  </div>
-                  ${getStatusBadge(c.status)}
-                </div>
-              `).join('') : '<p style="color:var(--text-muted);">No cases on this platform yet.</p>'}
+            <!-- Case Activity — populated by initNgoProfilePage with real data -->
+            <div class="card animate-in" id="ngoCaseHistoryCard">
+              <h3 style="margin-bottom:var(--space-md);">📋 Cases Handled</h3>
+              <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:var(--space-md);">Active and historical cases managed by this NGO. Click any case to read details or donate.</p>
+              <div id="ngoCaseList">
+                <!-- Skeleton while loading -->
+                ${[1,2,3].map(() => `
+                  <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border-glass);">
+                    <div class="skeleton" style="width:48px;height:48px;border-radius:8px;"></div>
+                    <div style="flex:1;">
+                      <div class="skeleton skeleton-line medium" style="height:14px;margin-bottom:6px;"></div>
+                      <div class="skeleton skeleton-line short" style="height:10px;width:60%;"></div>
+                    </div>
+                  </div>`).join('')}
+              </div>
             </div>
           </div>
 
@@ -103,26 +113,10 @@ function renderNgoProfile(ngoId) {
                   </div>
                 </div>
                 <div class="credibility-breakdown" id="credBreakdown">
-                  <div class="cred-item">
-                    <div class="cred-label">⚡ Speed</div>
-                    <div class="cred-bar"><div class="cred-bar-fill skeleton" style="width:85%;background:var(--success);"></div></div>
-                    <div class="cred-percent">85%</div>
-                  </div>
-                  <div class="cred-item">
-                    <div class="cred-label">✅ Success</div>
-                    <div class="cred-bar"><div class="cred-bar-fill skeleton" style="width:92%;background:var(--primary);"></div></div>
-                    <div class="cred-percent">92%</div>
-                  </div>
-                  <div class="cred-item">
-                    <div class="cred-label">💰 Transparency</div>
-                    <div class="cred-bar"><div class="cred-bar-fill skeleton" style="width:78%;background:var(--warning);"></div></div>
-                    <div class="cred-percent">78%</div>
-                  </div>
-                  <div class="cred-item">
-                    <div class="cred-label">⭐ Community</div>
-                    <div class="cred-bar"><div class="cred-bar-fill skeleton" style="width:90%;background:var(--gold);"></div></div>
-                    <div class="cred-percent">90%</div>
-                  </div>
+                  <div class="cred-item"><div class="cred-label">⚡ Speed</div><div class="cred-bar"><div class="cred-bar-fill skeleton" style="width:85%;background:var(--success);"></div></div><div class="cred-percent">85%</div></div>
+                  <div class="cred-item"><div class="cred-label">✅ Success</div><div class="cred-bar"><div class="cred-bar-fill skeleton" style="width:92%;background:var(--primary);"></div></div><div class="cred-percent">92%</div></div>
+                  <div class="cred-item"><div class="cred-label">💰 Transparency</div><div class="cred-bar"><div class="cred-bar-fill skeleton" style="width:78%;background:var(--warning);"></div></div><div class="cred-percent">78%</div></div>
+                  <div class="cred-item"><div class="cred-label">⭐ Community</div><div class="cred-bar"><div class="cred-bar-fill skeleton" style="width:90%;background:var(--gold);"></div></div><div class="cred-percent">90%</div></div>
                 </div>
               </div>
             </div>
@@ -144,10 +138,9 @@ function renderNgoProfile(ngoId) {
                 <div style="font-size:0.85rem; color:var(--text-muted);">Loading reviews...</div>
               </div>
 
-              <!-- Submit Review Form (only if logged in) -->
+              <!-- Submit Review Form -->
               <div id="reviewForm" style="background:var(--bg-glass);border:1px solid var(--border-glass);border-radius:var(--radius-md);padding:var(--space-md);margin-bottom:var(--space-lg);">
                 <div style="font-weight:600;font-size:0.9rem;margin-bottom:var(--space-sm);">✍️ Leave a Review</div>
-                <!-- Star Rating Picker -->
                 <div id="starPicker" style="display:flex;gap:6px;margin-bottom:var(--space-sm);font-size:1.6rem;cursor:pointer;">
                   <span data-star="1" onclick="setReviewStar(1)" style="opacity:0.3;">⭐</span>
                   <span data-star="2" onclick="setReviewStar(2)" style="opacity:0.3;">⭐</span>
@@ -261,7 +254,69 @@ async function loadNgoReviews(ngoId) {
   }
 }
 
+async function loadNgoCases(ngoId) {
+  const listEl = document.getElementById('ngoCaseList');
+  if (!listEl) return;
+
+  // Get mock demo cases for this NGO
+  const mockCases = (MOCK_DATA.cases || []).filter(c => c.ngoAssigned === ngoId);
+
+  // Try to also fetch real backend cases for this NGO
+  let realCases = [];
+  try {
+    const res = await fetch(`http://localhost:3000/api/cases?limit=100`);
+    const json = await res.json();
+    realCases = (json.data || []).filter(c => c.assignedNgoId === ngoId || c.assignedNgo?.id === ngoId);
+  } catch (e) { /* backend offline, show mock only */ }
+
+  // Merge: real cases first, then mock (avoid duplicates by id)
+  const realIds = new Set(realCases.map(c => c.id));
+  const allCases = [...realCases, ...mockCases.filter(c => !realIds.has(c.id))];
+
+  if (allCases.length === 0) {
+    listEl.innerHTML = `<p style="color:var(--text-muted);padding:var(--space-md) 0;">No cases handled yet — check back soon!</p>`;
+    return;
+  }
+
+  const urgencyColors = { critical: '#dc2626', CRITICAL: '#dc2626', moderate: '#f59e0b', MODERATE: '#f59e0b', stable: '#16a34a', STABLE: '#16a34a' };
+
+  listEl.innerHTML = allCases.map(c => {
+    const title = c.title || c.description?.slice(0, 60) || 'Animal in Distress';
+    const city = c.city || c.location || 'Location reported';
+    const date = c.createdAt || c.reportedAt;
+    const status = c.status || 'open';
+    const urgency = c.urgency || 'moderate';
+    const color = urgencyColors[urgency] || '#f59e0b';
+    const isReal = !!c.latitude; // real cases have GPS coords
+
+    return `
+      <div style="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--border-glass);">
+        <!-- Urgency dot -->
+        <div style="width:44px;height:44px;border-radius:10px;background:${color}18;border:2px solid ${color}40;display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0;">
+          ${c.emoji || '🐾'}
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:600;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${title}</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">
+            📍 ${city} • 🕐 ${date ? timeAgo(date) : 'Recently'}
+            <span style="margin-left:6px;padding:1px 6px;border-radius:8px;background:${color}18;color:${color};font-weight:700;font-size:0.65rem;">${urgency.toUpperCase()}</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
+          <button onclick="navigate('/case/${c.id}')" style="padding:4px 10px;border-radius:6px;background:var(--bg-glass);border:1px solid var(--border-glass);color:var(--text-primary);font-size:0.72rem;cursor:pointer;white-space:nowrap;">
+            👁️ View
+          </button>
+          <a href="#/donate" style="padding:4px 10px;border-radius:6px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:var(--gold-light);font-size:0.72rem;text-align:center;text-decoration:none;white-space:nowrap;">
+            💰 Donate
+          </a>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
 function initNgoProfilePage() {
+
   const hash = window.location.hash;
   const ngoId = hash.split('/ngo/')[1];
   if (!ngoId) return;
@@ -273,6 +328,10 @@ function initNgoProfilePage() {
 
   // Load live reviews
   loadNgoReviews(ngoId);
+
+  // Load real + mock cases for this NGO
+  loadNgoCases(ngoId);
+
 
   // Credibility score
   const circumference = 2 * Math.PI * 60;
