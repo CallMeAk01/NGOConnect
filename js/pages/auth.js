@@ -129,13 +129,16 @@ function handleGoogleCallback() {
 // ─── Email / Password Auth ────────────────────────────────────────────────────
 
 async function handleLogin() {
-  const email = document.getElementById('loginEmail')?.value;
+  const email = document.getElementById('loginEmail')?.value?.trim();
   const password = document.getElementById('loginPassword')?.value;
 
   if (!email || !password) {
-    showToast('Please enter both email and password');
+    showToast('Please enter both email and password', 'error');
     return;
   }
+
+  const btn = document.querySelector('[onclick="handleLogin()"]');
+  if (btn) { btn.disabled = true; btn.textContent = 'Logging in...'; }
 
   try {
     const res = await fetch('http://localhost:3000/api/auth/login', {
@@ -147,22 +150,27 @@ async function handleLogin() {
     const data = await res.json();
 
     if (res.ok) {
-      showToast('✅ Login successful!');
+      // Save full user object including name
+      const user = { ...data.user, name: data.user.name || email.split('@')[0] };
       localStorage.setItem('token', data.access_token);
-      localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('user', JSON.stringify(user));
       if (typeof updateNavbar === 'function') updateNavbar();
+      showToast('✅ Login successful! Welcome back, ' + user.name);
 
-      const role = data.user.role.toUpperCase();
+      const role = (user.role || 'REPORTER').toUpperCase();
       const dashMap = { REPORTER: '/dashboard/reporter', NGO: '/dashboard/ngo', DONOR: '/dashboard/donor', ADMIN: '/dashboard/reporter' };
-      setTimeout(() => navigate(dashMap[role] || '/dashboard/reporter'), 1000);
+      setTimeout(() => navigate(dashMap[role] || '/dashboard/reporter'), 800);
     } else {
-      showToast(data.message || 'Login failed');
+      showToast(data.message || 'Invalid email or password', 'error');
     }
   } catch (e) {
     console.error(e);
-    showToast('Network error during login');
+    showToast('Cannot connect to server — is the backend running?', 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Login'; }
   }
 }
+
 
 async function handleRegister() {
   const name = document.getElementById('registerName')?.value;
